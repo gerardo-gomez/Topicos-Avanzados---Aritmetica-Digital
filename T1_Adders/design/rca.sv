@@ -33,4 +33,10 @@ module adder #(
 
   assign cout = c[WIDTH];
 
+  // Flags
+  assign zero_f = ~(|result);
+  assign ov_f   = is_signed
+                ? ((srca[WIDTH-1] ^ result[WIDTH-1]) & (srcb[WIDTH-1] ^ result[WIDTH-1])) // Overflow para signed:   si el signo del resultado es diferente al de ambos operandos
+                : cout;                                                                   // Overflow para unsigned: si hay carry de salida
+
 endmodule
