@@ -62,9 +62,8 @@ module adder #(
 
   overflow_flag_check: assert property (
     ((ov_f) |-> (result != sva_result))
-  ) else $error("Overflow flag set on correct result: A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), ov_f = %0d",
-                srca, srcb, cin, result, sva_result, ov_f);
-
+  ) else $error("Overflow flag set on correct result (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), ov_f = %0d",
+                is_signed, srca, srcb, cin, result, sva_result, ov_f);
 `endif
 
 endmodule
