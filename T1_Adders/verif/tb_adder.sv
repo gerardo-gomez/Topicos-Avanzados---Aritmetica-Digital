@@ -98,24 +98,25 @@ module tb_adder;
 
   assign {sva_cout, sva_result} = srca + srcb + cin;
 
-  result_check: assert property (@(posedge clk) disable iff (ov_f)
-    (result == sva_result)
+  result_check: assert property (@(negedge clk) disable iff (ov_f)
+    (result === sva_result)
   ) else $error("Adder result mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h)",
                 is_signed, srca, srcb, cin, result, sva_result);
 
-  cout_check: assert property (@(posedge clk)
-    (cout == sva_cout)
+  cout_check: assert property (@(negedge clk)
+    (cout === sva_cout)
   ) else $error("Carry out mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), cout = %0d (expected %0d)",
                 is_signed, srca, srcb, cin, result, sva_result, cout, sva_cout);
 
-  zero_flag_check: assert property (@(posedge clk)
-    (zero_f == (result == 0))
+  zero_flag_check: assert property (@(negedge clk)
+    (zero_f === (result == 0))
   ) else $error("Zero flag mismatch: result = 0x%0h, zero_f = %0d (expected %0d)",
                 result, zero_f, (result == 0));
 
-  overflow_flag_check: assert property (@(posedge clk)
-    ((ov_f) |-> (result != sva_result))
-  ) else $error("Overflow flag set on correct result (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), ov_f = %0d",
-                is_signed, srca, srcb, cin, result, sva_result, ov_f);
+  overflow_flag_check: assert property (@(negedge clk)
+    ((ov_f) |-> ( ( is_signed & (dut.c[WIDTH-1] != dut.c[(WIDTH-1)+1]))
+                | (~is_signed & cout)))
+  ) else $error("Overflow flag mismatch (signed = %0d): cout = %0d, cin[MSB] = %0d, cout[MSB] = %0d, ov_f = %0d",
+                is_signed, cout, dut.c[WIDTH-1], dut.c[(WIDTH-1)+1], ov_f);
   
 endmodule
