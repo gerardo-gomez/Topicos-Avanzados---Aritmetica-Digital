@@ -92,6 +92,30 @@ module tb_adder;
     
   end
   
-  
+  // Assertions
+  logic [WIDTH-1:0] sva_result;
+  logic             sva_cout;
+
+  assign {sva_cout, sva_result} = srca + srcb + cin;
+
+  result_check: assert property (@(posedge clk) disable iff (ov_f)
+    (result == sva_result)
+  ) else $error("Adder result mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h)",
+                is_signed, srca, srcb, cin, result, sva_result);
+
+  cout_check: assert property (@(posedge clk)
+    (cout == sva_cout)
+  ) else $error("Carry out mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), cout = %0d (expected %0d)",
+                is_signed, srca, srcb, cin, result, sva_result, cout, sva_cout);
+
+  zero_flag_check: assert property (@(posedge clk)
+    (zero_f == (result == 0))
+  ) else $error("Zero flag mismatch: result = 0x%0h, zero_f = %0d (expected %0d)",
+                result, zero_f, (result == 0));
+
+  overflow_flag_check: assert property (@(posedge clk)
+    ((ov_f) |-> (result != sva_result))
+  ) else $error("Overflow flag set on correct result (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), ov_f = %0d",
+                is_signed, srca, srcb, cin, result, sva_result, ov_f);
   
 endmodule

@@ -39,31 +39,4 @@ module adder #(
                 ? ((srca[WIDTH-1] ^ result[WIDTH-1]) & (srcb[WIDTH-1] ^ result[WIDTH-1])) // Overflow para signed:   si el signo del resultado es diferente al de ambos operandos
                 : cout;                                                                   // Overflow para unsigned: si hay carry de salida
 
-`ifdef VERIF
-  logic [WIDTH-1:0] sva_result;
-  logic             sva_cout;
-
-  assign {sva_cout, sva_result} = srca + srcb + cin;
-
-  result_check: assert property (disable iff (ov_f)
-    (result == sva_result)
-  ) else $error("Adder result mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h)",
-                is_signed, srca, srcb, cin, result, sva_result);
-
-  cout_check: assert property (
-    (cout == sva_cout)
-  ) else $error("Carry out mismatch (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), cout = %0d (expected %0d)",
-                is_signed, srca, srcb, cin, result, sva_result, cout, sva_cout);
-
-  zero_flag_check: assert property (
-    (zero_f == (result == 0))
-  ) else $error("Zero flag mismatch: result = 0x%0h, zero_f = %0d (expected %0d)",
-                result, zero_f, (result == 0));
-
-  overflow_flag_check: assert property (
-    ((ov_f) |-> (result != sva_result))
-  ) else $error("Overflow flag set on correct result (signed = %0d): A + B + Cin = 0x%0h + 0x%0h + 0x%0h = 0x%0h (expected 0x%0h), ov_f = %0d",
-                is_signed, srca, srcb, cin, result, sva_result, ov_f);
-`endif
-
 endmodule
