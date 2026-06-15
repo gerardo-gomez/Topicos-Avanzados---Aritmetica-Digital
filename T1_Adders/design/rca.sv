@@ -21,7 +21,7 @@ module adder #(
   genvar i;
   generate
     for (i = 0; i < WIDTH; i = i + 1) begin : fa_chain
-      full_adder fa (
+      fa fa (
         .a   (srca  [i]  ),
         .b   (srcb  [i]  ),
         .cin (c     [i]  ),

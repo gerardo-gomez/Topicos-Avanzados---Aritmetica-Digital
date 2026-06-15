@@ -1,5 +1,7 @@
+// Description: Full Adder
+
 // Implementación con expresión de mayoría para Cout
-module full_adder (
+module fa (
   input  logic a, b, cin,
   output logic sum, cout
 );
@@ -8,7 +10,7 @@ module full_adder (
 endmodule
 
 // Equivalente (también común)
-module full_adder_alt (
+module fa_alt (
   input  logic a, b, cin,
   output logic sum, cout
 );
