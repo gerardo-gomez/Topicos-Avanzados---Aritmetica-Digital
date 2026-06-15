@@ -16,6 +16,7 @@ vmap work rtl_work
 #vlog -sv -work work -suppress 13314 {./design/fa.sv}
 #vlog -sv -work work -suppress 13314 {./design/rca.sv}
 # Carry Look-Ahead Adder files
+vlog -sv -work work -suppress 13314 {./design/lcu4.sv}
 vlog -sv -work work -suppress 13314 {./design/cla4.sv}
 vlog -sv -work work -suppress 13314 {./design/cla.sv}
 
