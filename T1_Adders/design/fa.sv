@@ -1,4 +1,4 @@
-// Description: Full Adder
+// Description: Full-Adder
 
 // Implementación con expresión de mayoría para Cout
 module fa (
