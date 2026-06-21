@@ -13,26 +13,27 @@ module cla16 (
 
   logic [3:0][3:0] cla4_a;
   logic [3:0][3:0] cla4_b;
-  logic [3:0]      cla4_cin;
   logic [3:0][3:0] cla4_sum;
   logic [3:0]      cla4_gg;
   logic [3:0]      cla4_pg;
 
-  logic [4:1]      lcu4_cout;
+  logic [3:0]      lcu4_c;
+  logic            lcu4_gg;
+  logic            lcu4_pg;
 
   lcu4 lcu4 (
-    .g   (cla4_gg  ),
-    .p   (cla4_pg  ),
-    .cin (cin      ),
-    .cout(lcu4_cout),
-    .gg  (         ),
-    .pg  (         )
+    .g  (cla4_gg),
+    .p  (cla4_pg),
+    .cin(cin    ),
+    .c  (lcu4_c ),
+    .gg (lcu4_gg),
+    .pg (lcu4_pg)
   );
 
   cla4 cla4_0 (
     .a   (cla4_a  [0]),
     .b   (cla4_b  [0]),
-    .cin (cla4_cin[0]),
+    .cin (lcu4_c  [0]),
     .sum (cla4_sum[0]),
     .cout(           ),
     .gg  (cla4_gg [0]),
@@ -42,7 +43,7 @@ module cla16 (
   cla4 cla4_1 (
     .a   (cla4_a  [1]),
     .b   (cla4_b  [1]),
-    .cin (cla4_cin[1]),
+    .cin (lcu4_c  [1]),
     .sum (cla4_sum[1]),
     .cout(           ),
     .gg  (cla4_gg [1]),
@@ -52,7 +53,7 @@ module cla16 (
   cla4 cla4_2 (
     .a   (cla4_a  [2]),
     .b   (cla4_b  [2]),
-    .cin (cla4_cin[2]),
+    .cin (lcu4_c  [2]),
     .sum (cla4_sum[2]),
     .cout(           ),
     .gg  (cla4_gg [2]),
@@ -62,7 +63,7 @@ module cla16 (
   cla4 cla4_3 (
     .a   (cla4_a  [3]),
     .b   (cla4_b  [3]),
-    .cin (cla4_cin[3]),
+    .cin (lcu4_c  [3]),
     .sum (cla4_sum[3]),
     .cout(           ),
     .gg  (cla4_gg [3]),
@@ -80,16 +81,12 @@ module cla16 (
     cla4_b[2] = srcb[11: 8];
     cla4_b[3] = srcb[15:12];
 
-    cla4_cin[0] = cin;
-    cla4_cin[1] = lcu4_cout[1];
-    cla4_cin[2] = lcu4_cout[2];
-    cla4_cin[3] = lcu4_cout[3];
-    cout        = lcu4_cout[4];
-
     result[ 3: 0] = cla4_sum[0];
     result[ 7: 4] = cla4_sum[1];
     result[11: 8] = cla4_sum[2];
     result[15:12] = cla4_sum[3];
+
+    cout = lcu4_gg | (lcu4_pg & cin);
   end
 
   // Flags
