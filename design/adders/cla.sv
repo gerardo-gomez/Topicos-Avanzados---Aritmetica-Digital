@@ -33,39 +33,43 @@ module adder #(
   );
 
   cla4 cla4_0 (
-    .a  (cla4_a  [0]),
-    .b  (cla4_b  [0]),
-    .cin(cla4_cin[0]),
-    .sum(cla4_sum[0]),
-    .gg (cla4_gg [0]),
-    .pg (cla4_pg [0])
+    .a   (cla4_a  [0]),
+    .b   (cla4_b  [0]),
+    .cin (cla4_cin[0]),
+    .sum (cla4_sum[0]),
+    .cout(           ),
+    .gg  (cla4_gg [0]),
+    .pg  (cla4_pg [0])
   );
 
   cla4 cla4_1 (
-    .a  (cla4_a  [1]),
-    .b  (cla4_b  [1]),
-    .cin(cla4_cin[1]),
-    .sum(cla4_sum[1]),
-    .gg (cla4_gg [1]),
-    .pg (cla4_pg [1])
+    .a   (cla4_a  [1]),
+    .b   (cla4_b  [1]),
+    .cin (cla4_cin[1]),
+    .sum (cla4_sum[1]),
+    .cout(           ),
+    .gg  (cla4_gg [1]),
+    .pg  (cla4_pg [1])
   );
 
   cla4 cla4_2 (
-    .a  (cla4_a  [2]),
-    .b  (cla4_b  [2]),
-    .cin(cla4_cin[2]),
-    .sum(cla4_sum[2]),
-    .gg (cla4_gg [2]),
-    .pg (cla4_pg [2])
+    .a   (cla4_a  [2]),
+    .b   (cla4_b  [2]),
+    .cin (cla4_cin[2]),
+    .sum (cla4_sum[2]),
+    .cout(           ),
+    .gg  (cla4_gg [2]),
+    .pg  (cla4_pg [2])
   );
 
   cla4 cla4_3 (
-    .a  (cla4_a  [3]),
-    .b  (cla4_b  [3]),
-    .cin(cla4_cin[3]),
-    .sum(cla4_sum[3]),
-    .gg (cla4_gg [3]),
-    .pg (cla4_pg [3])
+    .a   (cla4_a  [3]),
+    .b   (cla4_b  [3]),
+    .cin (cla4_cin[3]),
+    .sum (cla4_sum[3]),
+    .cout(           ),
+    .gg  (cla4_gg [3]),
+    .pg  (cla4_pg [3])
   );
 
   always_comb begin
