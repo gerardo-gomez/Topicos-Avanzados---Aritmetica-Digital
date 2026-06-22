@@ -68,7 +68,7 @@ module adder #(
 
   // Full-adders (FAs)
   for (genvar fa = 0; fa < ADDER_WIDTH; fa++) begin : gen_fa
-    fa_gp fa (
+    fa_gp fa_gp (
       .a   (srca  [fa]),
       .b   (srcb  [fa]),
       .cin (fa_cin[fa]),
@@ -90,7 +90,7 @@ module adder #(
     for (genvar lcu = 0; lcu < NUM_LCUS; lcu++) begin : gen_lcu
 
       // Instancias de LCUs por nivel
-      lcu4 lcu (
+      lcu4 lcu4 (
         .g  (lcu_g  [lvl][lcu]),
         .p  (lcu_p  [lvl][lcu]),
         .cin(lcu_cin[lvl][lcu]),
