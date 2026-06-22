@@ -27,6 +27,12 @@ module adder #(
     return (n % 4) == 0;
   endfunction
 
+  // Determina el residuo de n al dividirlo entre 4
+  // Usado para determinar el numero de entradas del ultimo LCU o grupo de FA, si n no es multiplo de 4
+  function automatic int f_get_remainder_4(input int n);
+    return n % 4;
+  endfunction
+
   // Determina cuantos grupos de 4 se forman en el numero n, si n no es multiplo de 4 se aumenta 1
   // Usado para determinal el numero de LCUs necesarios en cada nivel o grupos de 4 de FA
   function automatic int f_get_num_groups_4(input int n);
@@ -44,24 +50,23 @@ module adder #(
   localparam int LCU_WIDTH         = 4;
   localparam int NUM_LCU_LEVELS    = clog4_min1(ADDER_WIDTH);
   localparam int MAX_LCU_PER_LEVEL = f_get_num_groups_4(ADDER_WIDTH);
-  localparam int NUM_FA_GROUPS     = MAX_LCU_PER_LEVEL;
 
-  typedef logic [LCU_WIDTH-1:0] t_lcu_g;
-  typedef logic [LCU_WIDTH-1:0] t_lcu_p;
-  typedef logic [LCU_WIDTH-1:0] t_lcu_c;
-
-  t_lcu_g [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_g;
-  t_lcu_p [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_p;
-  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_cin;
-  t_lcu_c [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_c;
-  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_gg;
-  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_pg;
-
+  // FA inputs
   logic [ADDER_WIDTH-1:0] fa_cin;
+  // FA outputs
   logic [ADDER_WIDTH-1:0] fa_g;
   logic [ADDER_WIDTH-1:0] fa_p;
 
-  // Full-adders
+  // LCU inputs
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0]                lcu_cin;
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0][LCU_WIDTH-1:0] lcu_g;
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0][LCU_WIDTH-1:0] lcu_p;
+  // LCU outputs
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0][LCU_WIDTH-1:0] lcu_c;
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0]                lcu_gg;
+  logic [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0]                lcu_pg;
+
+  // Full-adders (FAs)
   for (genvar fa = 0; fa < ADDER_WIDTH; fa++) begin : gen_fa
     fa_gp fa (
       .a   (srca  [fa]),
@@ -73,11 +78,18 @@ module adder #(
     );
   end : gen_fa
 
-  // Look-Ahead Carry Units
+  // Look-Ahead Carry Units (LCUs)
+  // Niveles de LCUs
   for (genvar lvl = 0; lvl < NUM_LCU_LEVELS; lvl++) begin : gen_lvl
-    localparam int NUM_LCUS = f_get_num_lcu_per_level(lvl);
+    localparam int NUM_LCUS        = f_get_num_lcu_per_level(lvl);
+    localparam int LAST_LCU_ID     = NUM_LCUS - 1;
+    localparam int LAST_LCU_INPUTS = f_is_mult_4(NUM_LCUS)
+                                   ? LCU_WIDTH
+                                   : f_get_remainder_4(NUM_LCUS);
 
     for (genvar lcu = 0; lcu < NUM_LCUS; lcu++) begin : gen_lcu
+
+      // Instancias de LCUs por nivel
       lcu4 lcu (
         .g  (lcu_g  [lvl][lcu]),
         .p  (lcu_p  [lvl][lcu]),
@@ -86,8 +98,57 @@ module adder #(
         .gg (lcu_gg [lvl][lcu]),
         .pg (lcu_pg [lvl][lcu])
       );
+
+      if (lvl == 0) begin : gen_lvl0_wires
+
+        // Conectar FAs con el primer nivel de LCUs
+        always_comb begin
+          for (int fa = 0; fa < LCU_WIDTH; fa++) begin
+
+            if ((lcu == LAST_LCU_ID) & (fa >= LAST_LCU_INPUTS)) begin
+              lcu_g[lvl][lcu][fa] = 0;                                // Atar a cero las entradas de los LCUs que no se usan en el ultimo LCU del nivel
+              lcu_p[lvl][lcu][fa] = 0;                                // si el ancho del adder no es multiplo de 4
+
+            end else begin
+              lcu_g[lvl][lcu][fa] = fa_g[lcu*LCU_WIDTH + fa];         // Generate de los FAs a las entradas de los LCUs
+              lcu_p[lvl][lcu][fa] = fa_p[lcu*LCU_WIDTH + fa];         // Propagate de los FAs a las entradas de los LCUs
+
+              fa_cin[lcu*LCU_WIDTH + fa] = lcu_c[lvl][lcu][fa];       // Carrys generados por los LCUs a las entradas de los FAs
+            end
+
+          end // for fa
+        end // always_comb
+
+      end else begin : gen_lvlN_wires
+
+        // Conectar los niveles de LCUs entre si
+        always_comb begin
+          for (int lcu_lower = 0; lcu_lower < LCU_WIDTH; lcu_lower++) begin
+
+            if ((lcu == LAST_LCU_ID) & (lcu_lower >= LAST_LCU_INPUTS)) begin
+              lcu_g[lvl][lcu][lcu_lower] = 0;                                         // Atar a cero las entradas de los LCUs que no se usan en el ultimo LCU del nivel
+              lcu_p[lvl][lcu][lcu_lower] = 0;                                         // si el numero de LCUs en el nivel anterior no es multiplo de 4
+
+            end else begin
+              lcu_g[lvl][lcu][lcu_lower] = lcu_gg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Generate  (GG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
+              lcu_p[lvl][lcu][lcu_lower] = lcu_pg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Propagate (PG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
+
+              lcu_cin[lvl-1][lcu*LCU_WIDTH + lcu_lower] = lcu_c[lvl][lcu][lcu_lower]; // Carrys generados por los LCUs del nivel actual a las entradas de los LCUs del nivel anterior
+            end
+
+          end // for lcu_lower
+        end // always_comb
+
+      end : gen_lvlN_wires
     end : gen_lcu
   end : gen_lvl
+
+  // Conectar el ultimo nivel de LCUs con los carrys de entrada y salida del adder
+  always_comb begin
+    lcu_cin[NUM_LCU_LEVELS-1][0] = cin;                                       // Carry de entrada del adder a la entrada del LCU del nivel mas alto
+
+    cout = lcu_gg[NUM_LCU_LEVELS-1][0] | (lcu_pg[NUM_LCU_LEVELS-1][0] & cin); // Carry de salida del adder
+  end
 
   // Flags
   assign zero_f = ~(|result);
