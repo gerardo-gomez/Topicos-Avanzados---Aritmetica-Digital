@@ -1,4 +1,4 @@
-// Description: Carry Look-Ahead Adder (N-bits)
+// Description: N-bits Carry Look-Ahead Adder with 4-bit Look-Ahead Carry Unit (LCU)
 // Contact:     Gerardo Gomez
 
 module adder #(
@@ -14,88 +14,85 @@ module adder #(
   output logic             ov_f        // Bandera de overflow
 ); 
 
-  logic [3:0][3:0] cla4_a;
-  logic [3:0][3:0] cla4_b;
-  logic [3:0][3:0] cla4_sum;
-  logic [3:0]      cla4_gg;
-  logic [3:0]      cla4_pg;
+  // Logaritmo base 4 redondeado hacia arriba y que regresa 1 como valor minimo
+  // Esta funcion es necesaria para determinar el numero de niveles de LCU necesarios para un adder de ancho WIDTH, ya que cada LCU maneja 4 bits
+  function automatic int clog4_min1(input int n);
+    if (n <= 4) return 1;
+    return ($clog2(n) + 1) / 2;
+  endfunction
 
-  logic [3:0]      lcu4_c;
-  logic            lcu4_gg;
-  logic            lcu4_pg;
+  // Determina si un numero es multiplo de 4
+  // Usado para determinar si se necesitara un LCU o grupo (incompleto) de FA adicional 
+  function automatic int f_is_mult_4(input int n);
+    return (n % 4) == 0;
+  endfunction
 
-  lcu4 lcu4 (
-    .g  (cla4_gg),
-    .p  (cla4_pg),
-    .cin(cin    ),
-    .c  (lcu4_c ),
-    .gg (lcu4_gg),
-    .pg (lcu4_pg)
-  );
+  // Determina cuantos grupos de 4 se forman en el numero n, si n no es multiplo de 4 se aumenta 1
+  // Usado para determinal el numero de LCUs necesarios en cada nivel o grupos de 4 de FA
+  function automatic int f_get_num_groups_4(input int n);
+    return (n / 4) + (f_is_mult_4(n) ? 0 : 1);
+  endfunction
 
-  cla4 cla4_0 (
-    .a   (cla4_a  [0]),
-    .b   (cla4_b  [0]),
-    .cin (lcu4_c  [0]),
-    .sum (cla4_sum[0]),
-    .cout(           ),
-    .gg  (cla4_gg [0]),
-    .pg  (cla4_pg [0])
-  );
+  // Determina el numero de LCUs necesarios en cada nivel de jerarquia
+  // Basada en la funcion f_get_num_groups_4, pero llamada recursivamente ya que el numero en cada nivel depende del numero de LCUs del nivel anterior
+  function automatic int f_get_num_lcu_per_level(input int lvl);
+    if (lvl == 0) return f_get_num_groups_4(ADDER_WIDTH);
+    return f_get_num_groups_4(f_get_num_lcu_per_level(lvl-1));
+  endfunction
 
-  cla4 cla4_1 (
-    .a   (cla4_a  [1]),
-    .b   (cla4_b  [1]),
-    .cin (lcu4_c  [1]),
-    .sum (cla4_sum[1]),
-    .cout(           ),
-    .gg  (cla4_gg [1]),
-    .pg  (cla4_pg [1])
-  );
+  localparam int ADDER_WIDTH       = WIDTH;
+  localparam int LCU_WIDTH         = 4;
+  localparam int NUM_LCU_LEVELS    = clog4_min1(ADDER_WIDTH);
+  localparam int MAX_LCU_PER_LEVEL = f_get_num_groups_4(ADDER_WIDTH);
+  localparam int NUM_FA_GROUPS     = MAX_LCU_PER_LEVEL;
 
-  cla4 cla4_2 (
-    .a   (cla4_a  [2]),
-    .b   (cla4_b  [2]),
-    .cin (lcu4_c  [2]),
-    .sum (cla4_sum[2]),
-    .cout(           ),
-    .gg  (cla4_gg [2]),
-    .pg  (cla4_pg [2])
-  );
+  typedef logic [LCU_WIDTH-1:0] t_lcu_g;
+  typedef logic [LCU_WIDTH-1:0] t_lcu_p;
+  typedef logic [LCU_WIDTH-1:0] t_lcu_c;
 
-  cla4 cla4_3 (
-    .a   (cla4_a  [3]),
-    .b   (cla4_b  [3]),
-    .cin (lcu4_c  [3]),
-    .sum (cla4_sum[3]),
-    .cout(           ),
-    .gg  (cla4_gg [3]),
-    .pg  (cla4_pg [3])
-  );
+  t_lcu_g [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_g;
+  t_lcu_p [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_p;
+  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_cin;
+  t_lcu_c [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_c;
+  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_gg;
+  logic   [NUM_LCU_LEVELS-1:0][MAX_LCU_PER_LEVEL-1:0] lcu_pg;
 
-  always_comb begin
-    cla4_a[0] = srca[ 3: 0];
-    cla4_a[1] = srca[ 7: 4];
-    cla4_a[2] = srca[11: 8];
-    cla4_a[3] = srca[15:12];
+  logic [ADDER_WIDTH-1:0] fa_cin;
+  logic [ADDER_WIDTH-1:0] fa_g;
+  logic [ADDER_WIDTH-1:0] fa_p;
 
-    cla4_b[0] = srcb[ 3: 0];
-    cla4_b[1] = srcb[ 7: 4];
-    cla4_b[2] = srcb[11: 8];
-    cla4_b[3] = srcb[15:12];
+  // Full-adders
+  for (genvar fa = 0; fa < ADDER_WIDTH; fa++) begin : gen_fa
+    fa_gp fa (
+      .a   (srca  [fa]),
+      .b   (srcb  [fa]),
+      .cin (fa_cin[fa]),
+      .sum (result[fa]),
+      .g   (fa_g  [fa]),
+      .p   (fa_p  [fa])
+    );
+  end : gen_fa
 
-    result[ 3: 0] = cla4_sum[0];
-    result[ 7: 4] = cla4_sum[1];
-    result[11: 8] = cla4_sum[2];
-    result[15:12] = cla4_sum[3];
+  // Look-Ahead Carry Units
+  for (genvar lvl = 0; lvl < NUM_LCU_LEVELS; lvl++) begin : gen_lvl
+    localparam int NUM_LCUS = f_get_num_lcu_per_level(lvl);
 
-    cout = lcu4_gg | (lcu4_pg & cin);
-  end
+    for (genvar lcu = 0; lcu < NUM_LCUS; lcu++) begin : gen_lcu
+      lcu4 lcu (
+        .g  (lcu_g  [lvl][lcu]),
+        .p  (lcu_p  [lvl][lcu]),
+        .cin(lcu_cin[lvl][lcu]),
+        .c  (lcu_c  [lvl][lcu]),
+        .gg (lcu_gg [lvl][lcu]),
+        .pg (lcu_pg [lvl][lcu])
+      );
+    end : gen_lcu
+  end : gen_lvl
 
   // Flags
   assign zero_f = ~(|result);
   assign ov_f   = is_signed
-                ? ((srca[WIDTH-1] ^ result[WIDTH-1]) & (srcb[WIDTH-1] ^ result[WIDTH-1])) // Overflow para signed:   si el signo del resultado es diferente al de ambos operandos
-                : cout;                                                                   // Overflow para unsigned: si hay carry de salida
+                ? ((srca[ADDER_WIDTH-1] ^ result[ADDER_WIDTH-1]) & (srcb[ADDER_WIDTH-1] ^ result[ADDER_WIDTH-1])) // Overflow para signed:   si el signo del resultado es diferente al de ambos operandos
+                : cout;                                                                                           // Overflow para unsigned: si hay carry de salida
 
 endmodule

@@ -13,8 +13,8 @@ vmap work rtl_work
 # Supressed messages: Warning vopt-13314 - Defaulting port '' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
 
 # Design files
+vlog -sv -work work -suppress 13314 {./design/adders/fa_gp.sv}
 vlog -sv -work work -suppress 13314 {./design/adders/lcu4.sv}
-vlog -sv -work work -suppress 13314 {./design/adders/cla4.sv}
 vlog -sv -work work -suppress 13314 {./design/adders/cla.sv}
 
 # Testbench files
