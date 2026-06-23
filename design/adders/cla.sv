@@ -46,6 +46,19 @@ module adder #(
     return f_get_num_groups_4(f_get_num_lcu_per_level(lvl-1));
   endfunction
 
+  // Determina el numero de entradas del ultimo LCU en cada nivel de jerarquia
+  // Checa si el numero de LCUs (o FAs para el nivel 0) en el nivel anterior es multiplo de 4, si no lo es regresa el residuo de la division entre 4
+  function automatic int f_get_last_lcu_inputs(input int lvl);
+    if (lvl == 0) begin
+      return ( f_is_mult_4(ADDER_WIDTH)
+             ? 4
+             : f_get_remainder_4(ADDER_WIDTH));
+    end
+    return ( f_is_mult_4(f_get_num_lcu_per_level(lvl-1))
+           ? 4
+           : f_get_remainder_4(f_get_num_lcu_per_level(lvl-1)));
+  endfunction
+
   localparam int ADDER_WIDTH       = WIDTH;
   localparam int LCU_WIDTH         = 4;
   localparam int NUM_LCU_LEVELS    = clog4_min1(ADDER_WIDTH);
@@ -83,9 +96,7 @@ module adder #(
   for (genvar lvl = 0; lvl < NUM_LCU_LEVELS; lvl++) begin : gen_lvl
     localparam int NUM_LCUS        = f_get_num_lcu_per_level(lvl);
     localparam int LAST_LCU_ID     = NUM_LCUS - 1;
-    localparam int LAST_LCU_INPUTS = f_is_mult_4(NUM_LCUS)
-                                   ? LCU_WIDTH
-                                   : f_get_remainder_4(NUM_LCUS);
+    localparam int LAST_LCU_INPUTS = f_get_last_lcu_inputs(lvl);
 
     for (genvar lcu = 0; lcu < NUM_LCUS; lcu++) begin : gen_lcu
 

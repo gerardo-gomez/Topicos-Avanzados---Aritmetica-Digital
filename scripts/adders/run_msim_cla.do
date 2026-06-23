@@ -25,6 +25,6 @@ vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 tb_adder
 # Waveforms
 #view structure
 #view signals
-#do wave.do
+#do ./scripts/adders/wave_cla.do
 
 run -all

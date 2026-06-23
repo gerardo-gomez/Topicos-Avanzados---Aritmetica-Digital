@@ -1,7 +1,7 @@
 `timescale 1ns/1ns
 
 module tb_adder;
-  parameter int WIDTH = 16;
+  parameter int WIDTH = 4;
   
   logic clk;
   
@@ -88,7 +88,8 @@ module tb_adder;
       $display ("TEST FAILED");
     end
     
-    $finish();
+//  $finish();
+    $stop();
     
   end
   
