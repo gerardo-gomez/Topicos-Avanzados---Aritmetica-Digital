@@ -113,53 +113,43 @@ module adder #(
       if (lvl == 0) begin : gen_lvl0_wires
 
         // Conectar FAs con el primer nivel de LCUs
-        always_comb begin
-          for (int fa = 0; fa < LCU_WIDTH; fa++) begin
+        for (genvar fa = 0; fa < LCU_WIDTH; fa++) begin : gen_fa_wires
+          if ((lcu == LAST_LCU_ID) & (fa >= LAST_LCU_INPUTS)) begin
+            assign lcu_g[lvl][lcu][fa] = 1'b0;                       // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
+            assign lcu_p[lvl][lcu][fa] = 1'b1;                       // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
-            if ((lcu == LAST_LCU_ID) & (fa >= LAST_LCU_INPUTS)) begin
-              lcu_g[lvl][lcu][fa] = 1'b0;                             // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
-              lcu_p[lvl][lcu][fa] = 1'b1;                             // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
+          end else begin
+            assign lcu_g[lvl][lcu][fa] = fa_g[lcu*LCU_WIDTH + fa];   // Generate de los FAs a las entradas de los LCUs
+            assign lcu_p[lvl][lcu][fa] = fa_p[lcu*LCU_WIDTH + fa];   // Propagate de los FAs a las entradas de los LCUs
 
-            end else begin
-              lcu_g[lvl][lcu][fa] = fa_g[lcu*LCU_WIDTH + fa];         // Generate de los FAs a las entradas de los LCUs
-              lcu_p[lvl][lcu][fa] = fa_p[lcu*LCU_WIDTH + fa];         // Propagate de los FAs a las entradas de los LCUs
-
-              fa_cin[lcu*LCU_WIDTH + fa] = lcu_c[lvl][lcu][fa];       // Carrys generados por los LCUs a las entradas de los FAs
-            end
-
-          end // for fa
-        end // always_comb
+            assign fa_cin[lcu*LCU_WIDTH + fa] = lcu_c[lvl][lcu][fa]; // Carrys generados por los LCUs a las entradas de los FAs
+          end // else
+        end : gen_fa_wires
 
       end else begin : gen_lvlN_wires
 
         // Conectar los niveles de LCUs entre si
-        always_comb begin
-          for (int lcu_lower = 0; lcu_lower < LCU_WIDTH; lcu_lower++) begin
+        for (genvar lcu_lower = 0; lcu_lower < LCU_WIDTH; lcu_lower++) begin : gen_lcu_lower_wires
+          if ((lcu == LAST_LCU_ID) & (lcu_lower >= LAST_LCU_INPUTS)) begin
+            assign lcu_g[lvl][lcu][lcu_lower] = 1'b0;                                      // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
+            assign lcu_p[lvl][lcu][lcu_lower] = 1'b1;                                      // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
-            if ((lcu == LAST_LCU_ID) & (lcu_lower >= LAST_LCU_INPUTS)) begin
-              lcu_g[lvl][lcu][lcu_lower] = 1'b0;                                      // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
-              lcu_p[lvl][lcu][lcu_lower] = 1'b1;                                      // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
+          end else begin
+            assign lcu_g[lvl][lcu][lcu_lower] = lcu_gg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Generate  (GG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
+            assign lcu_p[lvl][lcu][lcu_lower] = lcu_pg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Propagate (PG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
 
-            end else begin
-              lcu_g[lvl][lcu][lcu_lower] = lcu_gg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Generate  (GG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
-              lcu_p[lvl][lcu][lcu_lower] = lcu_pg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Propagate (PG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
-
-              lcu_cin[lvl-1][lcu*LCU_WIDTH + lcu_lower] = lcu_c[lvl][lcu][lcu_lower]; // Carrys generados por los LCUs del nivel actual a las entradas de los LCUs del nivel anterior
-            end
-
-          end // for lcu_lower
-        end // always_comb
+            assign lcu_cin[lvl-1][lcu*LCU_WIDTH + lcu_lower] = lcu_c[lvl][lcu][lcu_lower]; // Carrys generados por los LCUs del nivel actual a las entradas de los LCUs del nivel anterior
+          end // else
+        end : gen_lcu_lower_wires
 
       end : gen_lvlN_wires
     end : gen_lcu
   end : gen_lvl
 
   // Conectar el ultimo nivel de LCUs con los carrys de entrada y salida del adder
-  always_comb begin
-    lcu_cin[NUM_LCU_LEVELS-1][0] = cin;                                       // Carry de entrada del adder a la entrada del LCU del nivel mas alto
+  assign lcu_cin[NUM_LCU_LEVELS-1][0] = cin;                                       // Carry de entrada del adder a la entrada del LCU del nivel mas alto
 
-    cout = lcu_gg[NUM_LCU_LEVELS-1][0] | (lcu_pg[NUM_LCU_LEVELS-1][0] & cin); // Carry de salida del adder
-  end
+  assign cout = lcu_gg[NUM_LCU_LEVELS-1][0] | (lcu_pg[NUM_LCU_LEVELS-1][0] & cin); // Carry de salida del adder
 
   // Flags
   assign zero_f = ~(|result);
