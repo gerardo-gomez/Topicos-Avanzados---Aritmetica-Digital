@@ -48,7 +48,7 @@ module adder #(
 
   // Determina el numero de entradas del ultimo LCU en cada nivel de jerarquia
   // Checa si el numero de LCUs (o FAs para el nivel 0) en el nivel anterior es multiplo de 4, si no lo es regresa el residuo de la division entre 4
-  function automatic int f_get_last_lcu_inputs(input int lvl);
+  function automatic int f_get_num_last_lcu_inputs(input int lvl);
     if (lvl == 0) begin
       return ( f_is_mult_4(ADDER_WIDTH)
              ? 4
@@ -94,9 +94,9 @@ module adder #(
   // Look-Ahead Carry Units (LCUs)
   // Niveles de LCUs
   for (genvar lvl = 0; lvl < NUM_LCU_LEVELS; lvl++) begin : gen_lvl
-    localparam int NUM_LCUS        = f_get_num_lcu_per_level(lvl);
-    localparam int LAST_LCU_ID     = NUM_LCUS - 1;
-    localparam int LAST_LCU_INPUTS = f_get_last_lcu_inputs(lvl);
+    localparam int NUM_LCUS            = f_get_num_lcu_per_level(lvl);
+    localparam int LAST_LCU_ID         = NUM_LCUS - 1;
+    localparam int NUM_LAST_LCU_INPUTS = f_get_num_last_lcu_inputs(lvl);
 
     for (genvar lcu = 0; lcu < NUM_LCUS; lcu++) begin : gen_lcu
 
@@ -114,7 +114,7 @@ module adder #(
 
         // Conectar FAs con el primer nivel de LCUs
         for (genvar fa = 0; fa < LCU_WIDTH; fa++) begin : gen_fa_wires
-          if ((lcu == LAST_LCU_ID) & (fa >= LAST_LCU_INPUTS)) begin
+          if ((lcu == LAST_LCU_ID) & (fa >= NUM_LAST_LCU_INPUTS)) begin
             assign lcu_g[lvl][lcu][fa] = 1'b0;                       // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
             assign lcu_p[lvl][lcu][fa] = 1'b1;                       // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
@@ -130,7 +130,7 @@ module adder #(
 
         // Conectar los niveles de LCUs entre si
         for (genvar lcu_lower = 0; lcu_lower < LCU_WIDTH; lcu_lower++) begin : gen_lcu_lower_wires
-          if ((lcu == LAST_LCU_ID) & (lcu_lower >= LAST_LCU_INPUTS)) begin
+          if ((lcu == LAST_LCU_ID) & (lcu_lower >= NUM_LAST_LCU_INPUTS)) begin
             assign lcu_g[lvl][lcu][lcu_lower] = 1'b0;                                      // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
             assign lcu_p[lvl][lcu][lcu_lower] = 1'b1;                                      // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
