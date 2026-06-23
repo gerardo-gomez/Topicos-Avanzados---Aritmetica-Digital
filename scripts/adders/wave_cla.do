@@ -1,5 +1,6 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
+add wave -noupdate /tb_adder/clk
 add wave -noupdate /tb_adder/dut/srca
 add wave -noupdate /tb_adder/dut/srcb
 add wave -noupdate /tb_adder/dut/cin
@@ -16,8 +17,8 @@ add wave -noupdate /tb_adder/dut/lcu_c
 add wave -noupdate /tb_adder/dut/lcu_gg
 add wave -noupdate /tb_adder/dut/lcu_pg
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
-quietly wave cursor active 0
+WaveRestoreCursors {{Cursor 1} {17225 ps} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -32,4 +33,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {7277 ps}
+WaveRestoreZoom {10832 ps} {21332 ps}

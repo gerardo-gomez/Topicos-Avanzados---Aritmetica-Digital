@@ -117,8 +117,8 @@ module adder #(
           for (int fa = 0; fa < LCU_WIDTH; fa++) begin
 
             if ((lcu == LAST_LCU_ID) & (fa >= LAST_LCU_INPUTS)) begin
-              lcu_g[lvl][lcu][fa] = 0;                                // Atar a cero las entradas de los LCUs que no se usan en el ultimo LCU del nivel
-              lcu_p[lvl][lcu][fa] = 0;                                // si el ancho del adder no es multiplo de 4
+              lcu_g[lvl][lcu][fa] = 1'b0;                             // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
+              lcu_p[lvl][lcu][fa] = 1'b1;                             // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
             end else begin
               lcu_g[lvl][lcu][fa] = fa_g[lcu*LCU_WIDTH + fa];         // Generate de los FAs a las entradas de los LCUs
@@ -137,8 +137,8 @@ module adder #(
           for (int lcu_lower = 0; lcu_lower < LCU_WIDTH; lcu_lower++) begin
 
             if ((lcu == LAST_LCU_ID) & (lcu_lower >= LAST_LCU_INPUTS)) begin
-              lcu_g[lvl][lcu][lcu_lower] = 0;                                         // Atar a cero las entradas de los LCUs que no se usan en el ultimo LCU del nivel
-              lcu_p[lvl][lcu][lcu_lower] = 0;                                         // si el numero de LCUs en el nivel anterior no es multiplo de 4
+              lcu_g[lvl][lcu][lcu_lower] = 1'b0;                                      // Atar las entradas de los LCUs que no se usan en el ultimo LCU del nivel si el numero de LCUs en
+              lcu_p[lvl][lcu][lcu_lower] = 1'b1;                                      // el nivel anterior no es multiplo de 4. Dichas entradas no generan carrys pero si los propagan.
 
             end else begin
               lcu_g[lvl][lcu][lcu_lower] = lcu_gg[lvl-1][lcu*LCU_WIDTH + lcu_lower];  // Group Generate  (GG) de los LCUs del nivel anterior a las entradas de los LCUs del nivel actual
