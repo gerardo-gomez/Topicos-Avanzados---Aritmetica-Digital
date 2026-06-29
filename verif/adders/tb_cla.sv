@@ -1,7 +1,7 @@
 `timescale 1ns/1ns
 
 module tb_adder;
-  parameter int WIDTH = 64;
+  parameter int WIDTH = 16;
   
   logic clk;
   
