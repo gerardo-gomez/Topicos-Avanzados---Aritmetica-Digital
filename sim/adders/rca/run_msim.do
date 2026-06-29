@@ -1,7 +1,7 @@
 # To run sim:
 # $ cd <repo_root>
-# $ vsim    -do ./scripts/adders/run_msim_rca.do # To open Questa GUI and view waveforms.
-# $ vsim -c -do ./scripts/adders/run_msim_rca.do # To execute Questa CLI (-c) and check test status.
+# $ vsim    -do ./sim/adders/rca/run_msim.do # To open Questa GUI and view waveforms.
+# $ vsim -c -do ./sim/adders/rca/run_msim.do # To execute Questa CLI (-c) and check test status.
 
 transcript on
 if {[file exists rtl_work]} {
@@ -24,6 +24,6 @@ vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 tb_adder
 # Waveforms
 #view structure
 #view signals
-#do ./scripts/adders/wave_rca.do
+#do ./sim/adders/rca/wave.do
 
 run -all
