@@ -59,11 +59,6 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
-set_global_assignment -name SDC_FILE adder.sdc
-set_global_assignment -name SYSTEMVERILOG_FILE fpga_top.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/fa_gp.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/lcu4.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/cla.sv
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
 set_location_assignment PIN_P11 -to clk
 set_instance_assignment -name VIRTUAL_PIN ON -to cout_out
@@ -75,3 +70,9 @@ set_instance_assignment -name VIRTUAL_PIN ON -to is_signed_in
 set_instance_assignment -name VIRTUAL_PIN ON -to srca_in
 set_instance_assignment -name VIRTUAL_PIN ON -to srcb_in
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name TCL_SCRIPT_FILE report_timing.tcl
+set_global_assignment -name SDC_FILE fpga_top.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE fpga_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/fa_gp.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/lcu4.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/cla.sv
