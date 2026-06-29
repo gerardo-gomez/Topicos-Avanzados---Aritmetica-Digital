@@ -1,11 +1,12 @@
 # Topicos Avanzados - Aritmetica Digital
 
 La estructura de este repositorio consiste en:
-- design/ : RTL de los entregables.
-- docs/   : Documento técnico de cada tarea.
-- fpga/   : Proyectos de Quartus para la implementación en FPGA.
-- sim/    : Scripts utilizados para correr las pruebas en Questasim.
-- verif/  : Testbenches de cada diseño.
+- design/  : RTL de los entregables.
+- docs/    : Documento técnico de cada tarea.
+- fpga/    : Proyectos de Quartus para la implementación en FPGA.
+- sim/     : Scripts utilizados para correr las pruebas en Questasim.
+- verif/   : Testbenches de cada diseño.
+- scripts/ : Scripts auxiliares miscelaneos.
 
 A su vez, cada uno de estos directorios principales contiene subdirectorios correspondientes a cada tarea.
 Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
