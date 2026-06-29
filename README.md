@@ -12,10 +12,11 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
 
 Entregables:
 1. Adders
-  - Documento técnico:                                 docs/adders/adders.pdf
-  - Ripple Carry Adder top module:                     design/adders/rca.sv
-  - Carry Look-Ahead top module:                       design/adders/cla.sv
-  - Comando para correr simulación de TB Simple (CLI): vsim -c -do ./sim/adders/*/run_msim.do
+  - Documento técnico:                                  docs/adders/adders.pdf
+  - Ripple Carry Adder top module:                      design/adders/rca.sv
+  - Carry Look-Ahead top module:                        design/adders/cla.sv
+  - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/adders/*/run_msim.do
+  - Comando para compilar y generar reportes de timing: source ./fpga/adders/*/fpga_flow.sh
 2. Multipliers
 3. FMA
 4. Dividers
