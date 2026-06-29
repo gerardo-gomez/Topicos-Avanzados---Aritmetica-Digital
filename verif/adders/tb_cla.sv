@@ -46,7 +46,7 @@ module tb_adder;
   initial begin
     bit pass;
     num_pass   = 0;
-	num_errors = 0;
+	  num_errors = 0;
     
     for (int idx = 0; idx < 1000; idx++) begin
       @(posedge clk);
@@ -80,6 +80,7 @@ module tb_adder;
       
     end
     
+    $display("Adder width: %0d", WIDTH);
     $display("NUM_PASS: %0d, NUM_ERRORS: %0d", num_pass, num_errors);
     
     if (num_errors == 0) begin
