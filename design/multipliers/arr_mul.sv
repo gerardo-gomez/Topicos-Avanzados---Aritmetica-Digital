@@ -1,8 +1,8 @@
 // Description: Array multiplier that handles signed numbers using Baugh-Wooley
 
 module multiplier #(
-  parameter  int SRC1_WIDTH   = 32,
-  parameter  int SRC2_WIDTH   = SRC1_WIDTH,
+  parameter  int SRC1_WIDTH   =  32,
+  parameter  int SRC2_WIDTH   =  SRC1_WIDTH,
   localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
 ) (
   input  logic [SRC1_WIDTH-1:0]   srca,
@@ -18,32 +18,37 @@ module multiplier #(
 
   // Partial products indexes
   localparam int LAST_NORMAL_PP_IDX = NUM_NORMAL_PP - 1;
-  localparam int CORR_PP_IDX        = NUM_TOTAL_PP - 1;
+  localparam int CORR_PP_IDX        = NUM_TOTAL_PP  - 1;
 
-  logic [NUM_NORMAL_PP-1:0][SRC1_WIDTH-1:0]   pp;
-  logic [NUM_TOTAL_PP-1:0] [SRC1_WIDTH-1:0]   pp_mod;
-  logic [NUM_TOTAL_PP-1:0] [RESULT_WIDTH-1:0] pp_shifted;
+  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp_unsigned;
+  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp_signed;
+  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp;
+  logic [NUM_TOTAL_PP-1:0][RESULT_WIDTH-1:0] pp_shifted;
 
   always_comb begin
     // Normal partial products matrix
     for (int b_i = 0; b_i < NUM_NORMAL_PP; b_i++) begin
-      pp[b_i] = srca & {SRC1_WIDTH{srcb[b_i]}};
+      pp_unsigned[b_i] = srca & {SRC1_WIDTH{srcb[b_i]}};
     end
+    pp_unsigned[CORR_PP_IDX] = '0;
 
     // Baugh-Wooley modified partial products matrix
     // PPs with only one MSB are inverted
     for (int b_i = 0; b_i < LAST_NORMAL_PP_IDX; b_i++) begin
-      pp_mod[b_i] = {~pp[b_i][SRC1_WIDTH-1], pp[b_i][SRC1_WIDTH-2:0]};
+      pp_signed[b_i] = {~pp_unsigned[b_i][SRC1_WIDTH-1], pp_unsigned[b_i][SRC1_WIDTH-2:0]};
     end
-    pp_mod[LAST_NORMAL_PP_IDX] = {pp[LAST_NORMAL_PP_IDX][SRC1_WIDTH-1], ~pp[LAST_NORMAL_PP_IDX][SRC1_WIDTH-2:0]};
+    pp_signed[LAST_NORMAL_PP_IDX] = {pp_unsigned[LAST_NORMAL_PP_IDX][SRC1_WIDTH-1], ~pp_unsigned[LAST_NORMAL_PP_IDX][SRC1_WIDTH-2:0]};
     // Baugh-Wooley correction partial product
-    pp_mod[CORR_PP_IDX] = {1'b1, {(SRC1_WIDTH-2){1'b0}}, 1'b1};
+    pp_signed[CORR_PP_IDX] = {1'b1, {(SRC1_WIDTH-2){1'b0}}, 1'b1};
+
+    // Select between unsigned and signed partial products
+    pp = is_signed ? pp_signed : pp_unsigned;
   end
 
   generate
     // Shift partial products according to their weight
     for (genvar b_i = 0; b_i < NUM_TOTAL_PP; b_i++) begin : gen_pp
-      assign pp_shifted[b_i] = {{(SRC2_WIDTH - b_i){1'b0}}, pp_mod[b_i], {b_i{1'b0}}};
+      assign pp_shifted[b_i] = {{(SRC2_WIDTH - b_i){1'b0}}, pp[b_i], {b_i{1'b0}}};
     end : gen_pp
   endgenerate
 
