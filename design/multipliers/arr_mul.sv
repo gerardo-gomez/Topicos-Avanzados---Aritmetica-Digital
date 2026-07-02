@@ -1,4 +1,4 @@
-// Description: Array multiplier that handles signed numbers using Baugh-Wooley
+// Description: Array multiplier that handles signed numbers using Baugh-Wooley and adds partial products in cascade (TODO: add them using CSA and CPA)
 
 module multiplier #(
   parameter  int SRC1_WIDTH   =  32,
@@ -78,3 +78,26 @@ module multiplier #(
   end
 
 endmodule
+
+// Typical implementation of an array multiplier: only supports unsigned numbers and is slow because the partial products are summed in cascade.
+// module array_mul #(parameter N = 8) (
+//   input  logic [N-1:0]   a, b,
+//   output logic [2*N-1:0] p
+// );
+//
+//   logic [N-1:0] pp [N];
+//
+//   always_comb begin
+//     for (int j = 0; j < N; j++)
+//       pp[j] = a & {N{b[j]}};
+//   end
+//
+//   always_comb begin
+//     p = '0;
+//       for (int j = 0; j < N; j++)
+//         p = p + ({{N{1'b0}}, pp[j]} << j);
+//   end
+// endmodule
+
+// Idiomatic form of an array multiplier (synthesis decides the architecture):
+//   assign p = a * b;
