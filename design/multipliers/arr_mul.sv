@@ -11,53 +11,70 @@ module multiplier #(
   output logic [RESULT_WIDTH-1:0] result
 );
 
-  // Number of partial products
-  localparam int NUM_NORMAL_PP = SRC2_WIDTH;                  // Number of normal partial products
-  localparam int NUM_CORR_PP   = 1;                           // Number of correction partial products for Baugh-Wooley
-  localparam int NUM_TOTAL_PP  = NUM_NORMAL_PP + NUM_CORR_PP; // Number of total partial products (normal + correction)
+  localparam int SRCA_WIDTH = SRC1_WIDTH;
+  localparam int SRCB_WIDTH = SRC2_WIDTH;
 
-  // Partial products indexes
-  localparam int LAST_NORMAL_PP_IDX = NUM_NORMAL_PP - 1;
-  localparam int CORR_PP_IDX        = NUM_TOTAL_PP  - 1;
+  // The number of partial products (PP) is determined by SRCB_WIDTH, and each PP has a width of SRCA_WIDTH
+  logic [SRCB_WIDTH-1:0][SRCA_WIDTH-1:0]   pp_unsigned;
+  logic [SRCB_WIDTH-1:0][SRCA_WIDTH-1:0]   pp_signed;
+  logic [SRCB_WIDTH-1:0][SRCA_WIDTH-1:0]   pp;
+  logic [SRCB_WIDTH-1:0][RESULT_WIDTH-1:0] pp_shifted;
+  logic                 [RESULT_WIDTH-1:0] signed_corr;
 
-  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp_unsigned;
-  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp_signed;
-  logic [NUM_TOTAL_PP-1:0][SRC1_WIDTH-1:0]   pp;
-  logic [NUM_TOTAL_PP-1:0][RESULT_WIDTH-1:0] pp_shifted;
-
+  // Regular partial products matrix
   always_comb begin
-    // Normal partial products matrix
-    for (int b_i = 0; b_i < NUM_NORMAL_PP; b_i++) begin
-      pp_unsigned[b_i] = srca & {SRC1_WIDTH{srcb[b_i]}};
+    for (int b_i = 0; b_i < SRCB_WIDTH; b_i++) begin
+      pp_unsigned[b_i] = srca & {SRCA_WIDTH{srcb[b_i]}};
     end
-    pp_unsigned[CORR_PP_IDX] = '0;
-
-    // Baugh-Wooley modified partial products matrix
-    // PPs with only one MSB are inverted
-    for (int b_i = 0; b_i < LAST_NORMAL_PP_IDX; b_i++) begin
-      pp_signed[b_i] = {~pp_unsigned[b_i][SRC1_WIDTH-1], pp_unsigned[b_i][SRC1_WIDTH-2:0]};
-    end
-    pp_signed[LAST_NORMAL_PP_IDX] = {pp_unsigned[LAST_NORMAL_PP_IDX][SRC1_WIDTH-1], ~pp_unsigned[LAST_NORMAL_PP_IDX][SRC1_WIDTH-2:0]};
-    // Baugh-Wooley correction partial product
-    pp_signed[CORR_PP_IDX] = {1'b1, {(SRC1_WIDTH-2){1'b0}}, 1'b1};
-
-    // Select between unsigned and signed partial products
-    pp = is_signed ? pp_signed : pp_unsigned;
   end
 
+  // Baugh-Wooley modified partial products matrix
+  always_comb begin
+    // PPs with no MSB or both MSBs are not inverted (default)
+    pp_signed = pp_unsigned;
+    // PPs with only SRCA[MSB] are inverted
+    for (int b_i = 0; b_i < (SRCB_WIDTH-1); b_i++) begin
+      pp_signed[b_i][SRCA_WIDTH-1] = ~pp_unsigned[b_i][SRCA_WIDTH-1];
+    end
+    // PPs with only SRCB[MSB] are inverted
+    for (int a_i = 0; a_i < (SRCA_WIDTH-1); a_i++) begin
+      pp_signed[SRCB_WIDTH-1][a_i] = ~pp_unsigned[SRCB_WIDTH-1][a_i];
+    end
+
+    // Constant correction bits
+    // These constant 1 bits are injected before the partial product addition.
+    // When n != m (asymetric case), the 3 correction bit positions are: n-1, m-1 and n+m-1
+    // When n  = m (symetric case), the 2 correction bit positions are: n and 2n-1
+    // To handle both cases, computing the constant correction with arithmetic addition is done
+    // so equal-position terms accumulate / carry to position n for the symmetric case, while the
+    // asymetric case still gets the independent n-1 and m-1 (and n+m-1) positions.
+    signed_corr = is_signed
+                ? ( (RESULT_WIDTH'(1'b1) << (SRCA_WIDTH-1))
+                  + (RESULT_WIDTH'(1'b1) << (SRCB_WIDTH-1))
+                  + (RESULT_WIDTH'(1'b1) << (RESULT_WIDTH-1)))
+                : '0;
+  end
+
+  // Select between unsigned and signed partial products
+  assign pp = is_signed
+            ? pp_signed
+            : pp_unsigned;
+
+  // Shift partial products according to their weight
   generate
-    // Shift partial products according to their weight
-    for (genvar b_i = 0; b_i < NUM_TOTAL_PP; b_i++) begin : gen_pp
-      assign pp_shifted[b_i] = {{(SRC2_WIDTH - b_i){1'b0}}, pp[b_i], {b_i{1'b0}}};
-    end : gen_pp
+    for (genvar b_i = 0; b_i < SRCB_WIDTH; b_i++) begin : gen_pp_shifted
+      assign pp_shifted[b_i] = {{(SRCB_WIDTH - b_i){1'b0}}, pp[b_i], {b_i{1'b0}}};
+    end : gen_pp_shifted
   endgenerate
 
+  // Sum of all partial products
   always_comb begin
-    // Accumulate sum of all partial products
     result = 0;
-    for (int b_i = 0; b_i < NUM_TOTAL_PP; b_i++) begin
+    for (int b_i = 0; b_i < SRCB_WIDTH; b_i++) begin
       result += pp_shifted[b_i];
     end
+    // Add the constant correction bits for signed multiplication
+    result += signed_corr;
   end
 
 endmodule
