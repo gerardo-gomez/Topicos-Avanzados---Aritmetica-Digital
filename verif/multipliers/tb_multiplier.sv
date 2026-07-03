@@ -74,7 +74,8 @@ module tb_multiplier;
       $display ("TEST FAILED");
     end
     
-    $finish();
+    $stop();
+//  $finish();
     
   end
   
