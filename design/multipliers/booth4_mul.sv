@@ -19,16 +19,12 @@ module multiplier #(
   localparam int BOOTH_PP_TABLE_SIZE = 2**BOOTH_TRIPLET_SIZE;   // Number of encoded triplets to partial products. 2^3 = 8 for radix-4
   localparam int BOOTH_NUM_PP        = SRCB_WIDTH / 2;          // Number of partial products for radix-4
   localparam int BOOTH_SHIFT_AMOUNT  = $clog2(BOOTH_RADIX);     // Amount to shift each partial product. 2 for radix-4
-  localparam int BOOTH_PP_MAX_MULT   = 2;                       // Maximum multiplier for partial products. 2 for radix-4
 
   typedef logic [BOOTH_TRIPLET_SIZE-1:0] t_booth_triplet;
 
   t_booth_triplet [BOOTH_NUM_PP-1:0]                        triplet;
   logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]      pp;
   logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]      pp_shifted;
-  logic           [BOOTH_NUM_PP-1:0]                        pp_is_comp2;
-  logic           [BOOTH_NUM_PP-1:0]                        pp_is_mult2;
-  logic           [BOOTH_NUM_PP-1:0][BOOTH_PP_MAX_MULT-1:0] pp_comp2_corr;
   logic                             [RESULT_WIDTH-1:0]      comp2_corr;
 
   // Function that groups the bits of srcb into triplets for radix-4 Booth encoding
@@ -79,6 +75,8 @@ module multiplier #(
   endfunction
 
   always_comb begin
+    comp2_corr = '0;
+
     for (int pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin
       // Group srcb bits into triplets
       triplet[pp_idx] = f_get_booth_triplet(pp_idx, srcb);
@@ -87,30 +85,16 @@ module multiplier #(
       pp[pp_idx] = f_get_booth_pp(triplet[pp_idx], srca);
 
       // Compute the partial product correction for 2's complement
-      // Detect if the partial product is a 2's complement and needs correction
-      pp_is_comp2[pp_idx] = f_is_booth_pp_comp2(triplet[pp_idx]);
-      // Detect if the partial product is a 2x multiplier
-      pp_is_mult2[pp_idx] = f_is_booth_pp_mult2(triplet[pp_idx]);
-
-      // Assign the position of the partial product correction
-      pp_comp2_corr[pp_idx][0] = pp_is_comp2[pp_idx];
-      pp_comp2_corr[pp_idx][1] = '0;
-//    pp_comp2_corr[pp_idx][0] = pp_is_comp2[pp_idx] & (~pp_is_mult2[pp_idx]); // - A
-//    pp_comp2_corr[pp_idx][1] = pp_is_comp2[pp_idx] &   pp_is_mult2[pp_idx];  // -2A
+      comp2_corr[pp_idx * BOOTH_SHIFT_AMOUNT] = f_is_booth_pp_comp2(triplet[pp_idx]);
     end
   end
 
   // Shift the partial products according to their weight
   generate
     for (genvar pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin : gen_pp_shifted
-      localparam int PP_SHIFT_AMOUNT = pp_idx * BOOTH_SHIFT_AMOUNT;
-
-      assign pp_shifted[pp_idx] = {pp[pp_idx][(RESULT_WIDTH - PP_SHIFT_AMOUNT)-1:0], {PP_SHIFT_AMOUNT{1'b0}}};
-
-      assign comp2_corr[PP_SHIFT_AMOUNT +: 2] = pp_comp2_corr[pp_idx];
+      assign pp_shifted[pp_idx] = {pp[pp_idx][(RESULT_WIDTH - (pp_idx * BOOTH_SHIFT_AMOUNT))-1:0], {(pp_idx * BOOTH_SHIFT_AMOUNT){1'b0}}};
     end : gen_pp_shifted
   endgenerate
-  assign comp2_corr[RESULT_WIDTH-1:BOOTH_NUM_PP*BOOTH_SHIFT_AMOUNT] = '0; // Zero the rest of the bits of the 2's complement correction
 
   // Sum of all partial products
   always_comb begin
@@ -122,26 +106,3 @@ module multiplier #(
   end
 
 endmodule
-
-// Typical implementation of an array multiplier: only supports unsigned numbers and is slow because the partial products are summed in cascade.
-// module array_mul #(parameter N = 8) (
-//   input  logic [N-1:0]   a, b,
-//   output logic [2*N-1:0] p
-// );
-//
-//   logic [N-1:0] pp [N];
-//
-//   always_comb begin
-//     for (int j = 0; j < N; j++)
-//       pp[j] = a & {N{b[j]}};
-//   end
-//
-//   always_comb begin
-//     p = '0;
-//       for (int j = 0; j < N; j++)
-//         p = p + ({{N{1'b0}}, pp[j]} << j);
-//   end
-// endmodule
-
-// Idiomatic form of an array multiplier (synthesis decides the architecture):
-//   assign p = a * b;
