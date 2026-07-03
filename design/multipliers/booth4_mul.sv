@@ -52,26 +52,16 @@ module multiplier #(
   function automatic logic [RESULT_WIDTH-1:0] f_get_booth_pp(input t_booth_triplet triplet, input logic [SRCA_WIDTH-1:0] srca);
     logic [RESULT_WIDTH-1:0] srca_sign_ext = {{SRCB_WIDTH{srca[SRCA_WIDTH-1]}}, srca};
     unique case (triplet)
-      3'b000, 3'b111: return                    '0; // 0A
       3'b001, 3'b010: return   srca_sign_ext      ; // +A
       3'b011:         return  (srca_sign_ext << 1); // +2A
       3'b100:         return ~(srca_sign_ext << 1); // -2A
       3'b101, 3'b110: return ~(srca_sign_ext     ); // -A
+      default:        return                    '0; // 0A (3'b000 or 3'b111)
     endcase
   endfunction
 
   function automatic logic f_is_booth_pp_comp2(input t_booth_triplet triplet);
-    unique case (triplet)
-      3'b100, 3'b101, 3'b110:                 return 1'b1; // -A, -2A
-      3'b000, 3'b001, 3'b010, 3'b011, 3'b111: return 1'b0; // +A, +2A or 0
-    endcase
-  endfunction
-
-  function automatic logic f_is_booth_pp_mult2(input t_booth_triplet triplet);
-    unique case (triplet)
-      3'b011, 3'b100:                                 return 1'b1; // +2A, -2A
-      3'b000, 3'b001, 3'b010, 3'b101, 3'b110, 3'b111: return 1'b0; // +A, -A or 0
-    endcase
+    return (triplet inside {3'b100, 3'b101, 3'b110}); // -A, -2A
   endfunction
 
   always_comb begin
