@@ -12,7 +12,7 @@ module multiplier #(
 );
 
   localparam int SRCA_WIDTH = SRC1_WIDTH;
-  localparam int SRCB_WIDTH = SRC2_WIDTH;
+  localparam int SRCB_WIDTH = SRC2_WIDTH + 1;                   // Additional bit to support unsigned multiplications
 
   localparam int BOOTH_RADIX         = 4;
   localparam int BOOTH_TRIPLET_SIZE  = 3;                       // $clog2(BOOTH_RADIX) + 1 = 3 for radix-4
@@ -23,10 +23,11 @@ module multiplier #(
 
   typedef logic [BOOTH_TRIPLET_SIZE-1:0] t_booth_triplet;
 
-  t_booth_triplet [BOOTH_NUM_PP-1:0]                        triplet;
-  logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]      pp;
-  logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]      pp_shifted;
-  logic                             [RESULT_WIDTH-1:0]      comp2_corr;
+  logic                             [SRCB_WIDTH-1:0]   srcb_extra;
+  t_booth_triplet [BOOTH_NUM_PP-1:0]                   triplet;
+  logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0] pp;
+  logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0] pp_shifted;
+  logic                             [RESULT_WIDTH-1:0] comp2_corr;
 
   // Function that groups the bits of srcb into triplets for radix-4 Booth encoding
   // Triplets are formed with overlap of 1 bit. Example for SRCB_WIDTH=8: (b_7 b_6 b_5), (b_5 b_4 b_3), (b_3 b_2 b_1), (b_1 b_0 b_(-1))
@@ -51,8 +52,8 @@ module multiplier #(
   //         1,   1,   1 -> 0
   // Note: Partial products don't use the complete 2's complement of srca.
   //       Instead, 1's complement is used and the result is corrected by injecting constant 1s to the final sum of partial products.
-  function automatic logic [RESULT_WIDTH-1:0] f_get_booth_pp(input t_booth_triplet triplet, input logic [SRCA_WIDTH-1:0] srca);
-    logic [RESULT_WIDTH-1:0] srca_sign_ext = {{SRCB_WIDTH{srca[SRCA_WIDTH-1]}}, srca};
+  function automatic logic [RESULT_WIDTH-1:0] f_get_booth_pp(input t_booth_triplet triplet, input logic [SRCA_WIDTH-1:0] srca, input logic is_signed);
+    logic [RESULT_WIDTH-1:0] srca_sign_ext = {{SRC2_WIDTH{srca[SRCA_WIDTH-1] & is_signed}}, srca};
     unique case (triplet)
       3'b001, 3'b010: return   srca_sign_ext      ; // +A
       3'b011:         return  (srca_sign_ext << 1); // +2A
@@ -67,14 +68,21 @@ module multiplier #(
   endfunction
 
   always_comb begin
+    // Use extended srcb with an additional bit at MSB to support unsigned multiplications:
+    // - If the multiplication is signed, srcb sign is extended to the extra bit.
+    // - If the multiplication is unsigned, srcb extra bit is set to 0 acting as the new srcb sign.
+    srcb_extra = {(srcb[SRC2_WIDTH-1] & is_signed), srcb};
+
+    // Initialize the 2's complement correction to 0
     comp2_corr = '0;
 
     for (int pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin
       // Group srcb bits into triplets
-      triplet[pp_idx] = f_get_booth_triplet(pp_idx, srcb);
+      triplet[pp_idx] = f_get_booth_triplet(pp_idx, srcb_extra);
 
-      // Get the partial products based on the encoded triplets
-      pp[pp_idx] = f_get_booth_pp(triplet[pp_idx], srca);
+      // Get the partial products based on the encoded triplets.
+      // is_signed is evaluated to check if srca sign is extended in the partial products.
+      pp[pp_idx] = f_get_booth_pp(triplet[pp_idx], srca, is_signed);
 
       // Compute the partial product correction for 2's complement
       comp2_corr[pp_idx * BOOTH_SHIFT_AMOUNT] = f_is_booth_pp_comp2(triplet[pp_idx]);
