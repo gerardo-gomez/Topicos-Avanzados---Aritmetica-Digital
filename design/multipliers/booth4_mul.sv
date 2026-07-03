@@ -17,7 +17,8 @@ module multiplier #(
   localparam int BOOTH_RADIX         = 4;
   localparam int BOOTH_TRIPLET_SIZE  = 3;                       // $clog2(BOOTH_RADIX) + 1 = 3 for radix-4
   localparam int BOOTH_PP_TABLE_SIZE = 2**BOOTH_TRIPLET_SIZE;   // Number of encoded triplets to partial products. 2^3 = 8 for radix-4
-  localparam int BOOTH_NUM_PP        = SRCB_WIDTH / 2;          // Number of partial products for radix-4
+  localparam int BOOTH_NUM_PP        = (SRCB_WIDTH / 2)         // Number of partial products for radix-4
+                                     + (SRCB_WIDTH % 2);        // Add 1 if SRCB_WIDTH is odd
   localparam int BOOTH_SHIFT_AMOUNT  = $clog2(BOOTH_RADIX);     // Amount to shift each partial product. 2 for radix-4
 
   typedef logic [BOOTH_TRIPLET_SIZE-1:0] t_booth_triplet;
@@ -30,9 +31,10 @@ module multiplier #(
   // Function that groups the bits of srcb into triplets for radix-4 Booth encoding
   // Triplets are formed with overlap of 1 bit. Example for SRCB_WIDTH=8: (b_7 b_6 b_5), (b_5 b_4 b_3), (b_3 b_2 b_1), (b_1 b_0 b_(-1))
   function automatic t_booth_triplet f_get_booth_triplet(input int pp_idx, input logic [SRCB_WIDTH-1:0] srcb);
-    logic [(SRCB_WIDTH + 1)-1:0] srcb_ext;
+    logic [(SRCB_WIDTH + (SRCB_WIDTH % 2) + 1)-1:0] srcb_ext;
     // Extend srcb with auxiliary 0 at LSB for triplet grouping (b_(-1) = 0)
-    srcb_ext = {srcb, 1'b0};
+    // Also extend srcb sign an additional bit at MSB if SRCB_WIDTH is odd to make it even for triplet grouping
+    srcb_ext = {{(SRCB_WIDTH % 2){srcb[SRCB_WIDTH-1]}}, srcb, 1'b0};
     return {srcb_ext[(2*pp_idx + 1) + 1], srcb_ext[(2*pp_idx + 1) + 0], srcb_ext[(2*pp_idx + 1) - 1]};
   endfunction
 
