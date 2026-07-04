@@ -1,4 +1,4 @@
-// Description: Radix-4 / modified Booth multiplier that adds partial products in cascade (TODO: add them using Wallace / CSA and CPA)
+// Description: Radix-4 / modified Booth multiplier that adds partial products using a Wallace tree (CSA) and a Carry Look-ahead Adder (CLA) for the final addition
 
 module multiplier #(
   parameter  int SRC1_WIDTH   =  32,
@@ -29,6 +29,13 @@ module multiplier #(
   logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]   pp;
   logic           [BOOTH_NUM_PP-1:0][RESULT_WIDTH-1:0]   pp_shifted;
   logic                             [RESULT_WIDTH-1:0]   comp2_corr;
+
+  // Signals for sum of partial products
+  localparam int WALLACE_NUM_OPERANDS_IN = BOOTH_NUM_PP + 1; // +1 for the constant correction bits
+  localparam int WALLACE_NUM_OPERANDS_OUT = 2;               // Wallace tree reduces to 2 operands
+
+  logic [WALLACE_NUM_OPERANDS_IN-1:0] [RESULT_WIDTH-1:0] wallace_operands_in;
+  logic [WALLACE_NUM_OPERANDS_OUT-1:0][RESULT_WIDTH-1:0] wallace_operands_out;
 
   // Function that groups the bits of srcb into triplets for radix-4 Booth encoding
   // Triplets are formed with overlap of 1 bit. Example for srcb[7:0]: (b_7 b_6 b_5), (b_5 b_4 b_3), (b_3 b_2 b_1), (b_1 b_0 b_(-1))
@@ -99,11 +106,29 @@ module multiplier #(
 
   // Sum of all partial products
   always_comb begin
-    result = 0;
-    for (int pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin
-      result += pp_shifted[pp_idx];
-    end
-    result += comp2_corr; // Add the 2's complement correction
+    wallace_operands_in[BOOTH_NUM_PP-1:0]          = pp_shifted;
+    wallace_operands_in[WALLACE_NUM_OPERANDS_IN-1] = comp2_corr; // Add the 2's complement correction
   end
+
+  wallace_tree #(
+    .WIDTH (RESULT_WIDTH           ),
+    .NUM_IN(WALLACE_NUM_OPERANDS_IN)
+  ) wallace_tree (
+    .operands_in (wallace_operands_in ),
+    .operands_out(wallace_operands_out)
+  );
+
+  adder #(
+    .WIDTH(RESULT_WIDTH)
+  ) cla (
+    .srca     (wallace_operands_out[0]),
+    .srcb     (wallace_operands_out[1]),
+    .cin      (1'b0                   ),
+    .is_signed(1'b0                   ),
+    .result   (result                 ),
+    .cout     (                       ),
+    .zero_f   (                       ),
+    .ov_f     (                       )
+  );
 
 endmodule
