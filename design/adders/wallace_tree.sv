@@ -5,20 +5,13 @@ module wallace_tree #(
     parameter  int NUM_IN  = 8,  // Number of input operands
     localparam int NUM_OUT = 2   // Number of output operands
 ) (
-    input  logic [NUM_IN -1:0][WIDTH-1:0] in,
-    output logic [NUM_OUT-1:0][WIDTH-1:0] out
+    input  logic [NUM_IN -1:0][WIDTH-1:0] operands_in,
+    output logic [NUM_OUT-1:0][WIDTH-1:0] operands_out
 );
 
   localparam int ADDER_WIDTH       = WIDTH;
   localparam int NUM_CSA_INPUTS    = 3;
   localparam int NUM_CSA_OUTPUTS   = 2;
-
-//// Function that returns the ceiling log base (3/2) of a given integer and that returns 1 as minimum value
-//// This function is used to determine the number of CSA levels in the Wallace tree
-//function automatic int clog3_2_min1(input int n);
-//  if (n <= 1) return 1;
-//  return int'($ceil($ln(n) / $ln(1.5)));
-//endfunction
 
   // Function that determines the residual of n when divided by 3
   function automatic int f_get_remainder_3(input int n);
@@ -133,8 +126,8 @@ module wallace_tree #(
   genvar csa_id;
 
   // Wallace tree input / output assignments
-  assign tree_in = in;
-  assign out     = tree_out;
+  assign tree_in      = operands_in;
+  assign operands_out = tree_out;
 
   generate
     // CSA levels
@@ -156,8 +149,8 @@ module wallace_tree #(
         csa #(
           .WIDTH(ADDER_WIDTH)
         ) csa (
-          .in (csa_in [lvl][csa_id]),
-          .out(csa_out[lvl][csa_id])
+          .operands_in (csa_in [lvl][csa_id]),
+          .operands_out(csa_out[lvl][csa_id])
         );
       end : gen_csa
 
