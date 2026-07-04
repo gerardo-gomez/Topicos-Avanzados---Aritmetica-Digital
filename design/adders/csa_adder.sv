@@ -5,8 +5,7 @@ module csa_adder #(
   parameter  int NUM_IN  = 8   // Number of input operands
 )(
   input  logic [NUM_IN-1:0][WIDTH-1:0] tree_in,
-  output logic             [WIDTH-1:0] result,
-  output logic                         cout
+  output logic             [WIDTH-1:0] result
 ); 
 
   localparam int NUM_OUT = 2; // Number of output operands from wallace tree
@@ -21,6 +20,6 @@ module csa_adder #(
       .out(tree_out)
   );
 
-  assign {cout, result} = {1'b0, tree_out[1]} + {1'b0, tree_out[0]};
+  assign result = tree_out[1] + tree_out[0];
 
 endmodule
