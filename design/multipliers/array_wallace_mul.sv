@@ -1,4 +1,4 @@
-// Description: Array multiplier that handles signed numbers using Baugh-Wooley and adds partial products in cascade (TODO: add them using CSA and CPA)
+// Description: Array multiplier that handles signed numbers using Baugh-Wooley and adds partial products using a Wallace tree (CSA) and a Carry Look-ahead Adder (CLA) for the final addition
 
 module multiplier #(
   parameter  int SRC1_WIDTH   =  32,
@@ -20,6 +20,13 @@ module multiplier #(
   logic [SRCB_WIDTH-1:0][SRCA_WIDTH-1:0]   pp;
   logic [SRCB_WIDTH-1:0][RESULT_WIDTH-1:0] pp_shifted;
   logic                 [RESULT_WIDTH-1:0] signed_corr;
+
+  // Signals for sum of partial products
+  localparam int WALLACE_NUM_OPERANDS_IN = SRCB_WIDTH + 1; // +1 for the constant correction bits
+  localparam int WALLACE_NUM_OPERANDS_OUT = 2;             // Wallace tree reduces to 2 operands
+
+  logic [WALLACE_NUM_OPERANDS_IN-1:0] [RESULT_WIDTH-1:0] wallace_operands_in;
+  logic [WALLACE_NUM_OPERANDS_OUT-1:0][RESULT_WIDTH-1:0] wallace_operands_out;
 
   // Regular partial products matrix
   always_comb begin
@@ -69,13 +76,30 @@ module multiplier #(
 
   // Sum of all partial products
   always_comb begin
-    result = 0;
-    for (int b_i = 0; b_i < SRCB_WIDTH; b_i++) begin
-      result += pp_shifted[b_i];
-    end
-    // Add the constant correction bits for signed multiplication
-    result += signed_corr;
+    wallace_operands_in[SRCB_WIDTH-1:0]            = pp_shifted;
+    wallace_operands_in[WALLACE_NUM_OPERANDS_IN-1] = signed_corr;
   end
+
+  wallace_tree #(
+    .WIDTH (RESULT_WIDTH           ),
+    .NUM_IN(WALLACE_NUM_OPERANDS_IN)
+  ) wallace_tree (
+    .operands_in (wallace_operands_in ),
+    .operands_out(wallace_operands_out)
+  );
+
+  adder #(
+    .WIDTH(RESULT_WIDTH)
+  ) cla (
+    .srca     (wallace_operands_out[0]),
+    .srcb     (wallace_operands_out[1]),
+    .cin      (1'b0                   ),
+    .is_signed(1'b0                   ),
+    .result   (result                 ),
+    .cout     (                       ),
+    .zero_f   (                       ),
+    .ov_f     (                       )
+  );
 
 endmodule
 
