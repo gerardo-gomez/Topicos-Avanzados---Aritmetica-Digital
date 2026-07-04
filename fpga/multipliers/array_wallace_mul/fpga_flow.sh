@@ -2,7 +2,7 @@
 #
 # To run this script:
 # cd <repo_root>
-# $ source ./fpga/multipliers/array_wallace_mul/generate_reports.sh
+# $ source ./fpga/multipliers/array_wallace_mul/fpga_flow.sh
 #
 # Note: Ensure that < Intel® Quartus® Prime directory>/quartus/bin directory is in your PATH environment variable
 #
