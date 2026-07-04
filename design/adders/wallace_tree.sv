@@ -90,20 +90,32 @@ module wallace_tree #(
     return lvl;
   endfunction
 
-  // Function that returns a CSA instance index given a level operand index
-  function automatic int f_lvl_operand_to_csa_idx(input int operand_idx);
-    return operand_idx / NUM_CSA_INPUTS;
+  // Function that returns a CSA instance index given a level input operand index
+  function automatic int f_lvl_input_operand_to_csa_id(input int input_operand_idx);
+    return input_operand_idx / NUM_CSA_INPUTS;
   endfunction
 
-  // Function that returns a CSA input index given a level operand index
-  function automatic int f_lvl_operand_to_csa_input_idx(input int operand_idx);
-    return operand_idx % NUM_CSA_INPUTS;
+  // Function that returns a CSA input index given a level input operand index
+  function automatic int f_lvl_operand_to_csa_input_idx(input int input_operand_idx);
+    return input_operand_idx % NUM_CSA_INPUTS;
+  endfunction
+
+  // Function that returns a CSA instance index given a level output operand index
+  function automatic int f_lvl_output_operand_to_csa_id(input int output_operand_idx);
+    return output_operand_idx / NUM_CSA_OUTPUTS;
+  endfunction
+
+  // Function that returns a CSA output index given a level output operand index
+  function automatic int f_lvl_operand_to_csa_output_idx(input int output_operand_idx);
+    return output_operand_idx % NUM_CSA_OUTPUTS;
   endfunction
 
   localparam int NUM_CSA_LEVELS    = f_get_num_csa_lvl();
   localparam int MAX_CSA_PER_LEVEL = f_get_lvl_num_csa(0);
   localparam int FIRST_CSA_LEVEL   = 0;
   localparam int LAST_CSA_LEVEL    = NUM_CSA_LEVELS - 1;
+
+  localparam int MAX_INPUT_OPERANDS_PER_LEVEL = NUM_IN + f_lvl_uses_aux_operand(NUM_IN);
 
   typedef logic [ADDER_WIDTH-1:0] t_operand;
 
@@ -113,12 +125,12 @@ module wallace_tree #(
   t_operand [NUM_CSA_LEVELS-1:0][MAX_CSA_PER_LEVEL-1:0][NUM_CSA_INPUTS-1:0]  csa_in;
   t_operand [NUM_CSA_LEVELS-1:0][MAX_CSA_PER_LEVEL-1:0][NUM_CSA_OUTPUTS-1:0] csa_out;
 
-  t_operand [NUM_CSA_LEVELS-1:0][NUM_IN-1:0] lvl_input_operands;
-  t_operand [NUM_CSA_LEVELS-1:0][NUM_IN-1:0] lvl_output_operands;
+  t_operand [NUM_CSA_LEVELS-1:0][MAX_INPUT_OPERANDS_PER_LEVEL-1:0] lvl_input_operands;
+  t_operand [NUM_CSA_LEVELS-1:0][MAX_INPUT_OPERANDS_PER_LEVEL-1:0] lvl_output_operands;
 
   genvar lvl;
   genvar operand_idx;
-  genvar csa_idx;
+  genvar csa_id;
 
   // Wallace tree input / output assignments
   assign tree_in = in;
@@ -140,12 +152,12 @@ module wallace_tree #(
       localparam int NUM_CSA_INSTANCES = f_get_lvl_num_csa(lvl);
 
       // CSA instances
-      for (csa_idx = 0; csa_idx < NUM_CSA_INSTANCES; csa_idx++) begin : gen_csa
+      for (csa_id = 0; csa_id < NUM_CSA_INSTANCES; csa_id++) begin : gen_csa
         csa #(
           .WIDTH(ADDER_WIDTH)
         ) csa (
-          .in (csa_in [lvl][csa_idx]),
-          .out(csa_out[lvl][csa_idx])
+          .in (csa_in [lvl][csa_id]),
+          .out(csa_out[lvl][csa_id])
         );
       end : gen_csa
 
@@ -168,7 +180,7 @@ module wallace_tree #(
 
       // Connect level input operands to the corresponding CSA inputs
       for (operand_idx = 0; operand_idx < NUM_INPUT_OPERANDS; operand_idx++) begin : gen_csa_input
-        assign csa_in[lvl][f_lvl_operand_to_csa_idx(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)] = lvl_input_operands[lvl][operand_idx];
+        assign csa_in[lvl][f_lvl_input_operand_to_csa_id(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)] = lvl_input_operands[lvl][operand_idx];
       end : gen_csa_input
 
       for (operand_idx = 0; operand_idx < NUM_OUTPUT_OPERANDS; operand_idx++) begin : gen_lvl_output
@@ -177,7 +189,7 @@ module wallace_tree #(
           assign lvl_output_operands[lvl][operand_idx] = lvl_input_operands[lvl][PASS_DOWN_OPERAND_IDX];
       // Connect CSA outputs to the corresponding level output operands
         end else begin : gen_lvl_output_operand
-          assign lvl_output_operands[lvl][operand_idx] = csa_out[lvl][f_lvl_operand_to_csa_idx(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)];
+          assign lvl_output_operands[lvl][operand_idx] = csa_out[lvl][f_lvl_output_operand_to_csa_id(operand_idx)][f_lvl_operand_to_csa_output_idx(operand_idx)];
         end : gen_lvl_output_operand
       end : gen_lvl_output
 
