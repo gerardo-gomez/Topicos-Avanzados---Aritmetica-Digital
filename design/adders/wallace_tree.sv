@@ -12,7 +12,6 @@ module wallace_tree #(
   localparam int ADDER_WIDTH       = WIDTH;
   localparam int NUM_CSA_INPUTS    = 3;
   localparam int NUM_CSA_OUTPUTS   = 2;
-  localparam int COMPRESS_RATIO    = NUM_CSA_OUTPUTS / NUM_CSA_INPUTS;
 
 //// Function that returns the ceiling log base (3/2) of a given integer and that returns 1 as minimum value
 //// This function is used to determine the number of CSA levels in the Wallace tree
@@ -60,7 +59,7 @@ module wallace_tree #(
     int lvl_output_num_operands;
     for (int lvl_iter = 0; lvl_iter <= lvl; lvl_iter++) begin
       lvl_input_num_operands  = f_adjust_lvl_num_input_operands(num_operands_left);
-      lvl_output_num_operands = lvl_input_num_operands * COMPRESS_RATIO + f_lvl_passes_down_operand(num_operands_left);
+      lvl_output_num_operands = ((lvl_input_num_operands * NUM_CSA_OUTPUTS) / NUM_CSA_INPUTS) + f_lvl_passes_down_operand(num_operands_left);
       num_operands_left       = lvl_output_num_operands;
     end
     return lvl_output_num_operands;

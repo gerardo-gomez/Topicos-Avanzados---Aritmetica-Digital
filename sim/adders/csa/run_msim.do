@@ -24,8 +24,8 @@ vlog -sv -work work -suppress 13314 {./verif/adders/tb_csa.sv}
 vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 tb_csa
 
 # Waveforms
-#view structure
-#view signals
-#do ./sim/adders/csa/wave.do
+view structure
+view signals
+do ./sim/adders/csa/wave.do
 
 run -all

@@ -16,11 +16,11 @@ module csa_adder #(
   wallace_tree #(
       .WIDTH (WIDTH ),
       .NUM_IN(NUM_IN)
-  ) wallace_tree_inst (
+  ) wallace_tree (
       .in (tree_in ),
       .out(tree_out)
   );
 
-  assign {cout, result} = tree_out[1] + tree_out[0];
+  assign {cout, result} = {1'b0, tree_out[1]} + {1'b0, tree_out[0]};
 
 endmodule
