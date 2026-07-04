@@ -80,6 +80,7 @@ module wallace_tree #(
     return f_get_lvl_num_input_operands(lvl) / NUM_CSA_INPUTS;
   endfunction
 
+  // Function that computes the number of CSA levels needed to reduce the input operands to 2 output operands
   function automatic int f_get_num_csa_lvl();
     int num_operands_left = NUM_IN;
     int lvl = 0;
@@ -90,10 +91,12 @@ module wallace_tree #(
     return lvl;
   endfunction
 
+  // Function that returns a CSA instance index given a level operand index
   function automatic int f_lvl_operand_to_csa_idx(input int operand_idx);
     return operand_idx / NUM_CSA_INPUTS;
   endfunction
 
+  // Function that returns a CSA input index given a level operand index
   function automatic int f_lvl_operand_to_csa_input_idx(input int operand_idx);
     return operand_idx % NUM_CSA_INPUTS;
   endfunction
@@ -116,65 +119,67 @@ module wallace_tree #(
 
   genvar lvl;
   genvar operand_idx;
+  genvar csa_idx;
 
   // Wallace tree input / output assignments
   assign tree_in = in;
   assign out     = tree_out;
 
-  // Wallace tree
-  // CSA levels
   generate
+    // CSA levels
     for (lvl = 0; lvl < NUM_CSA_LEVELS; lvl++) begin : gen_lvl
-      localparam int NUM_REMAINING_OPERANDS  = (lvl == 0) ? NUM_IN : f_get_lvl_num_output_operands(lvl-1);
+      localparam int NUM_REMAINING_OPERANDS  = (lvl == 0)
+                                             ? NUM_IN
+                                             : f_get_lvl_num_output_operands(lvl-1);
       localparam int NUM_INPUT_OPERANDS      = f_get_lvl_num_input_operands(lvl);
       localparam int NUM_OUTPUT_OPERANDS     = f_get_lvl_num_output_operands(lvl);
+
       localparam int LAST_INPUT_OPERAND_IDX  = NUM_INPUT_OPERANDS - 1;
       localparam int LAST_OUTPUT_OPERAND_IDX = NUM_OUTPUT_OPERANDS - 1;
       localparam int PASS_DOWN_OPERAND_IDX   = NUM_REMAINING_OPERANDS - 1;
 
-      // CSA level input operand connections
-      for (operand_idx = 0; operand_idx < NUM_INPUT_OPERANDS; operand_idx++) begin : gen_lvl_input
+      localparam int NUM_CSA_INSTANCES = f_get_lvl_num_csa(lvl);
 
-        if (lvl == FIRST_CSA_LEVEL) begin : gen_lvl0_input
+      // CSA instances
+      for (csa_idx = 0; csa_idx < NUM_CSA_INSTANCES; csa_idx++) begin : gen_csa
+        csa #(
+          .WIDTH(ADDER_WIDTH)
+        ) csa (
+          .in (csa_in [lvl][csa_idx]),
+          .out(csa_out[lvl][csa_idx])
+        );
+      end : gen_csa
 
-          if ((operand_idx == LAST_INPUT_OPERAND_IDX) & (f_lvl_uses_aux_operand(NUM_REMAINING_OPERANDS))) begin : gen_lvl0_input_aux
-            // Assign auxiliary operand 0 to the last position when applicable
-            assign lvl_input_operands[lvl][operand_idx] = '0;
+      // CSA connections
 
-          end else begin : gen_lvl0_input_operand
-            // Wire Wallace tree input operands to first CSA level operands
-            assign lvl_input_operands[lvl][operand_idx] = tree_in[operand_idx];
-          end : gen_lvl0_input_operand
-
-        end else begin : gen_lvlN_input
-
-          if ((operand_idx == LAST_INPUT_OPERAND_IDX) & (f_lvl_uses_aux_operand(NUM_REMAINING_OPERANDS))) begin : gen_lvlN_input_aux
-            // Assign auxiliary operand 0 to the last position when applicable
-            assign lvl_input_operands[lvl][operand_idx] = '0;
-
-          end else begin : gen_lvlN_input_operand
-            // Wire level input operands from output operands from previous level
-            assign lvl_input_operands[lvl][operand_idx] = lvl_output_operands[lvl-1][operand_idx];
-          end : gen_lvlN_input_operand
-
-        end : gen_lvlN_input
-
-        // Connect level input operands to the corresponding CSA input operands
-        assign csa_in[lvl][f_lvl_operand_to_csa_idx(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)] = lvl_input_operands[lvl][operand_idx];
+      for (operand_idx = 0; operand_idx < NUM_REMAINING_OPERANDS; operand_idx++) begin : gen_lvl_input
+      // Connect Wallace tree input operands to the first level
+        if (lvl == FIRST_CSA_LEVEL) begin : gen_lvl0_input_operand
+          assign lvl_input_operands[lvl][operand_idx] = tree_in[operand_idx];
+      // Connect remaining operands from previous level to the current level
+        end else begin : gen_lvlN_input_operand
+          assign lvl_input_operands[lvl][operand_idx] = lvl_output_operands[lvl-1][operand_idx];
+        end : gen_lvlN_input_operand
       end : gen_lvl_input
 
-      // CSA level output operand connections
+      // Assign auxiliary operand 0 to the last position when applicable
+      if (f_lvl_uses_aux_operand(NUM_REMAINING_OPERANDS)) begin : gen_lvl_input_aux
+        assign lvl_input_operands[lvl][LAST_INPUT_OPERAND_IDX] = '0;
+      end : gen_lvl_input_aux
+
+      // Connect level input operands to the corresponding CSA inputs
+      for (operand_idx = 0; operand_idx < NUM_INPUT_OPERANDS; operand_idx++) begin : gen_csa_input
+        assign csa_in[lvl][f_lvl_operand_to_csa_idx(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)] = lvl_input_operands[lvl][operand_idx];
+      end : gen_csa_input
+
       for (operand_idx = 0; operand_idx < NUM_OUTPUT_OPERANDS; operand_idx++) begin : gen_lvl_output
-
-        if ((operand_idx == LAST_OUTPUT_OPERAND_IDX) & (f_lvl_passes_down_operand(NUM_REMAINING_OPERANDS))) begin : gen_lvl_output_passdown
-          // Pass down the last remaining operand to the next level when applicable
+      // Pass down the remaining operand to the next level when applicable
+        if ((operand_idx == LAST_OUTPUT_OPERAND_IDX) & f_lvl_passes_down_operand(NUM_REMAINING_OPERANDS)) begin : gen_lvl_output_pass_down
           assign lvl_output_operands[lvl][operand_idx] = lvl_input_operands[lvl][PASS_DOWN_OPERAND_IDX];
-
+      // Connect CSA outputs to the corresponding level output operands
         end else begin : gen_lvl_output_operand
-          // Wire CSA output operands to level output operands
           assign lvl_output_operands[lvl][operand_idx] = csa_out[lvl][f_lvl_operand_to_csa_idx(operand_idx)][f_lvl_operand_to_csa_input_idx(operand_idx)];
         end : gen_lvl_output_operand
-
       end : gen_lvl_output
 
     end : gen_lvl
