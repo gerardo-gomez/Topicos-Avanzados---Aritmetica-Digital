@@ -3,7 +3,8 @@
 module fpga_top #(
   parameter  int SRC1_WIDTH   = 32,
   parameter  int SRC2_WIDTH   = SRC1_WIDTH,
-  localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+//localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+  parameter  int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH) // DON'T CHANGE (localparam not supported by Quartus)
 )(
   input  logic clk,
 

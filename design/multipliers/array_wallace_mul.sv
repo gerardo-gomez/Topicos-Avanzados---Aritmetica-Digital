@@ -3,7 +3,8 @@
 module multiplier #(
   parameter  int SRC1_WIDTH   =  32,
   parameter  int SRC2_WIDTH   =  SRC1_WIDTH,
-  localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+//localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+  parameter  int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH) // DON'T CHANGE (localparam not supported by Quartus)
 ) (
   input  logic [SRC1_WIDTH-1:0]   srca,
   input  logic [SRC2_WIDTH-1:0]   srcb,
@@ -69,7 +70,8 @@ module multiplier #(
 
   // Shift partial products according to their weight
   generate
-    for (genvar b_i = 0; b_i < SRCB_WIDTH; b_i++) begin : gen_pp_shifted
+    genvar b_i;
+    for (b_i = 0; b_i < SRCB_WIDTH; b_i++) begin : gen_pp_shifted
       assign pp_shifted[b_i] = {{(SRCB_WIDTH - b_i){1'b0}}, pp[b_i], {b_i{1'b0}}};
     end : gen_pp_shifted
   endgenerate

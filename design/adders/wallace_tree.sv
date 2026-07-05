@@ -3,7 +3,8 @@
 module wallace_tree #(
     parameter  int WIDTH   = 32, // Width of the operands
     parameter  int NUM_IN  = 8,  // Number of input operands
-    localparam int NUM_OUT = 2   // Number of output operands
+//  localparam int NUM_OUT = 2   // Number of output operands
+    parameter  int NUM_OUT = 2   // DON'T CHANGE (localparam not supported by Quartus)
 ) (
     input  logic [NUM_IN -1:0][WIDTH-1:0] operands_in,
     output logic [NUM_OUT-1:0][WIDTH-1:0] operands_out
@@ -14,22 +15,22 @@ module wallace_tree #(
   localparam int NUM_CSA_OUTPUTS   = 2;
 
   // Function that determines the residual of n when divided by 3
-  function automatic int f_get_remainder_3(input int n);
+  function int f_get_remainder_3(input int n);
     return n % 3;
   endfunction
 
   // Function that determines if a number is a multiple of 3
-  function automatic int f_is_mult_3(input int n);
+  function int f_is_mult_3(input int n);
     return f_get_remainder_3(n) == 0;
   endfunction
 
   // Function that determines if a CSA level will pass down an operand to the next level
-  function automatic int f_lvl_passes_down_operand(input int n);
+  function int f_lvl_passes_down_operand(input int n);
     return f_get_remainder_3(n) == 1;
   endfunction
 
   // Function that determines if a CSA level will use an auxiliary operand 0
-  function automatic int f_lvl_uses_aux_operand(input int n);
+  function int f_lvl_uses_aux_operand(input int n);
     return f_get_remainder_3(n) == 2;
   endfunction
 
@@ -38,7 +39,7 @@ module wallace_tree #(
   // - If the remainder is 0, it means the number of operands is already a multiple of 3, so no adjustment is needed.
   // - If the remainder is 1, the remaining operand is passed down to the next level, and n is substracted by 1 to make it a multiple of 3.
   // - If the remainder is 2, an additional auxiliary operand 0 is added to make it a multiple of 3.
-  function automatic int f_adjust_lvl_num_input_operands(input int n);
+  function int f_adjust_lvl_num_input_operands(input int n);
     if (f_is_mult_3(n))               return n;
     if (f_lvl_passes_down_operand(n)) return n - 1;
     if (f_lvl_uses_aux_operand(n))    return n + 1;
@@ -46,20 +47,21 @@ module wallace_tree #(
 
   // Function that determines the number of output operands / remaining operands to compress after the given CSA level
   // This function computes the number of operands per level iteratively until the specified level is reached
-  function automatic int f_get_lvl_num_output_operands(input int lvl);
-    int num_operands_left = NUM_IN;
+  function int f_get_lvl_num_output_operands(input int lvl);
+    int num_operands_left;
     int lvl_input_num_operands;
     int lvl_output_num_operands;
-    for (int lvl_iter = 0; lvl_iter <= lvl; lvl_iter++) begin
+    num_operands_left = NUM_IN;
+    for (int lvl_iter = 0; lvl_iter < NUM_IN; lvl_iter++) begin
       lvl_input_num_operands  = f_adjust_lvl_num_input_operands(num_operands_left);
       lvl_output_num_operands = ((lvl_input_num_operands * NUM_CSA_OUTPUTS) / NUM_CSA_INPUTS) + f_lvl_passes_down_operand(num_operands_left);
       num_operands_left       = lvl_output_num_operands;
+      if (lvl_iter == lvl) return lvl_output_num_operands;
     end
-    return lvl_output_num_operands;
   endfunction
 
   // Function that determines the number of input operands that a CSA level will compress
-  function automatic int f_get_lvl_num_input_operands(input int lvl);
+  function int f_get_lvl_num_input_operands(input int lvl);
     if (lvl == 0) begin
       return f_adjust_lvl_num_input_operands(NUM_IN);
     end else begin
@@ -68,38 +70,37 @@ module wallace_tree #(
   endfunction
 
   // Function that determines the number of CSAs needed in each hierarchy level based on the number of operands left to compress
-  function automatic int f_get_lvl_num_csa(input int lvl);
+  function int f_get_lvl_num_csa(input int lvl);
     return f_get_lvl_num_input_operands(lvl) / NUM_CSA_INPUTS;
   endfunction
 
   // Function that computes the number of CSA levels needed to reduce the input operands to 2 output operands
-  function automatic int f_get_num_csa_lvl();
-    int num_operands_left = NUM_IN;
-    int lvl = 0;
-    while (num_operands_left > NUM_CSA_OUTPUTS) begin
+  function int f_get_num_csa_lvl();
+    int num_operands_left;
+    num_operands_left = NUM_IN;
+    for (int lvl = 0; lvl < NUM_IN; lvl++) begin
       num_operands_left = f_get_lvl_num_output_operands(lvl);
-      lvl++;
+      if (num_operands_left == NUM_CSA_OUTPUTS) return (lvl + 1);
     end
-    return lvl;
   endfunction
 
   // Function that returns a CSA instance index given a level input operand index
-  function automatic int f_lvl_input_operand_to_csa_id(input int input_operand_idx);
+  function int f_lvl_input_operand_to_csa_id(input int input_operand_idx);
     return input_operand_idx / NUM_CSA_INPUTS;
   endfunction
 
   // Function that returns a CSA input index given a level input operand index
-  function automatic int f_lvl_operand_to_csa_input_idx(input int input_operand_idx);
+  function int f_lvl_operand_to_csa_input_idx(input int input_operand_idx);
     return input_operand_idx % NUM_CSA_INPUTS;
   endfunction
 
   // Function that returns a CSA instance index given a level output operand index
-  function automatic int f_lvl_output_operand_to_csa_id(input int output_operand_idx);
+  function int f_lvl_output_operand_to_csa_id(input int output_operand_idx);
     return output_operand_idx / NUM_CSA_OUTPUTS;
   endfunction
 
   // Function that returns a CSA output index given a level output operand index
-  function automatic int f_lvl_operand_to_csa_output_idx(input int output_operand_idx);
+  function int f_lvl_operand_to_csa_output_idx(input int output_operand_idx);
     return output_operand_idx % NUM_CSA_OUTPUTS;
   endfunction
 

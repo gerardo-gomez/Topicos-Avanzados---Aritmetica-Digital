@@ -2,8 +2,10 @@
 
 module csa #(
     parameter  int WIDTH   = 32, // Width of the operands
-    localparam int NUM_IN  = 3,  // Number of input operands
-    localparam int NUM_OUT = 2   // Number of output operands
+//  localparam int NUM_IN  = 3,  // Number of input operands
+    parameter  int NUM_IN  = 3,  // DON'T CHANGE (localparam not supported by Quartus)
+//  localparam int NUM_OUT = 2   // Number of output operands
+    parameter  int NUM_OUT = 2   // DON'T CHANGE (localparam not supported by Quartus)
 ) (
     input  logic [NUM_IN -1:0][WIDTH-1:0] operands_in,
     output logic [NUM_OUT-1:0][WIDTH-1:0] operands_out
@@ -24,8 +26,9 @@ module csa #(
   assign operands_out[1] = cy[WIDTH-1:0]; // Shifted-out carry is lost in the operand_out[1] (cy[WIDTH] not used)
 
   generate
+    genvar fa_i;
     // Full-adders instances side-by-side (no carry chain)
-    for (genvar fa_i = 0; fa_i < WIDTH; fa_i++) begin : gen_fa
+    for (fa_i = 0; fa_i < WIDTH; fa_i++) begin : gen_fa
       fa fa (
         .a   (a [fa_i  ]),
         .b   (b [fa_i  ]),
