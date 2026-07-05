@@ -11,7 +11,9 @@ La estructura de este repositorio consiste en:
 A su vez, cada uno de estos directorios principales contiene subdirectorios correspondientes a cada tarea.
 Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
 
-Entregables:
+## Entregables
+
+### Tareas
 1. Adders
   - Documento técnico:                                  docs/adders/adders.pdf
   - Ripple Carry Adder top module:                      design/adders/rca.sv
@@ -19,5 +21,14 @@ Entregables:
   - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/adders/*/run_msim.do
   - Comando para compilar y generar reportes de timing: source ./fpga/adders/*/fpga_flow.sh
 2. Multipliers
+  - Documento técnico:                                  docs/multipliers/multipliers.pdf
+  - Array Multiplier top module:                        design/multipliers/array_wallace_mul.sv
+  - Booth Wallace Multiplier top module:                design/multipliers/booth4_wallace_mul.sv
+  - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/multipliers/*/run_msim.do
+  - Comando para compilar y generar reportes de timing: source ./fpga/multipliers/*/fpga_flow.sh
 3. FMA
 4. Dividers
+5. Floating point
+6. Saturación
+
+### Proyecto
