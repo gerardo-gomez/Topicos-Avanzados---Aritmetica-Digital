@@ -3,7 +3,8 @@
 module multiplier #(
   parameter  int SRC1_WIDTH   =  32,
   parameter  int SRC2_WIDTH   =  SRC1_WIDTH,
-  localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+//localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
+  parameter  int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH) // DON'T CHANGE (localparam not supported by Quartus)
 ) (
   input  logic [SRC1_WIDTH-1:0]   srca,
   input  logic [SRC2_WIDTH-1:0]   srcb,
@@ -72,7 +73,10 @@ module multiplier #(
   endfunction
 
   function automatic logic f_is_booth_pp_comp2(input t_booth_triplet triplet);
-    return (triplet inside {3'b100, 3'b101, 3'b110}); // -A, -2A
+//  return (triplet inside {3'b100, 3'b101, 3'b110}); // -A, -2A
+    return ( (triplet == 3'b100)
+           | (triplet == 3'b101)
+           | (triplet == 3'b110)); // inside {} not supported by Quartus
   endfunction
 
   always_comb begin
@@ -99,7 +103,8 @@ module multiplier #(
 
   // Shift the partial products according to their weight
   generate
-    for (genvar pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin : gen_pp_shifted
+    genvar pp_idx;
+    for (pp_idx = 0; pp_idx < BOOTH_NUM_PP; pp_idx++) begin : gen_pp_shifted
       assign pp_shifted[pp_idx] = {pp[pp_idx][(RESULT_WIDTH - (pp_idx * BOOTH_SHIFT_AMOUNT))-1:0], {(pp_idx * BOOTH_SHIFT_AMOUNT){1'b0}}};
     end : gen_pp_shifted
   endgenerate
