@@ -30,5 +30,9 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
 4. Dividers
 5. Floating point
 6. Saturación
+  - Documento técnico:                                  docs/saturation/saturation.pdf
+  - Adder Saturation top module:                        design/saturation/adder_sat.sv
+  - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/saturation/run_msim.do
+  - Comando para compilar y generar reportes de timing: source ./fpga/saturation/fpga_flow.sh
 
 ### Proyecto
