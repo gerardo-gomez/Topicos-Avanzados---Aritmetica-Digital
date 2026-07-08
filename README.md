@@ -27,6 +27,12 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
   - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/multipliers/*/run_msim.do
   - Comando para compilar y generar reportes de timing: source ./fpga/multipliers/*/fpga_flow.sh
 3. FMA
+  - Documento técnico:                                  docs/fma/fma.pdf
+  - FMA top module:                                     design/fma/fma.sv
+  - FMA (independent multiply and addition) top module: design/fma/fma_split.sv
+  - FMA behavioral top module:                          design/fma/fma_behav.sv
+  - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/fma/*/run_msim.do
+  - Comando para compilar y generar reportes de timing: source ./fpga/fma/*/fpga_flow.sh
 4. Dividers
 5. Floating point
 6. Saturación
