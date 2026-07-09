@@ -16,7 +16,7 @@ module tb_divider;
   
   logic [WIDTH-1:0] exp_result;
   logic [WIDTH-1:0] exp_rem;
-  logic exp_div_zer_f;
+  logic exp_div_zero_f;
   
   int num_pass;
   int num_errors;
@@ -43,7 +43,7 @@ module tb_divider;
   initial begin
     bit pass;
     num_pass   = 0;
-	num_errors = 0;
+	  num_errors = 0;
     
     for (int idx = 0; idx < 1000; idx++) begin
       @(posedge clk);
@@ -52,11 +52,11 @@ module tb_divider;
       srcb      = $urandom();
       is_signed = $urandom();
       // Expected result
-      exp_div_zer_f = 0;
+      exp_div_zero_f = 0;
       if (srcb == 0) begin
-        exp_result    = '1;
-        exp_rem       = srca;
-        exp_div_zer_f = 1;
+        exp_result     = '1;
+        exp_rem        = srca;
+        exp_div_zero_f = 1;
       end else if (is_signed) begin
         exp_result = $signed(srca) / $signed(srcb);
         exp_rem    = $signed(srca) % $signed(srcb);
@@ -67,14 +67,14 @@ module tb_divider;
       // Check result
       @(negedge clk);
       pass = 1;
-      pass &= (exp_result    == result);
-      pass &= (exp_rem       == rem);
-      pass &= (exp_div_zer_f == exp_div_zer_f);
+      pass &= (exp_result     == result);
+      pass &= (exp_rem        == rem);
+      pass &= (exp_div_zero_f == div_zero_f);
       
       if (pass) begin
         num_pass++;
       end else begin
-        $error("Error, iteration: %0d, srca: 0x%0h, srcb: 0x%0h, is_signed: %0b, exp_result: 0x%0h, result: 0x%0h, exp_rem: %0b, rem: %0b, exp_div_zer_f: %0b, div_zero_f: %0b", idx, srca, srcb, is_signed, exp_result, result, exp_rem, rem, exp_div_zer_f, div_zero_f);
+        $error("Error, iteration: %0d, srca: 0x%0h, srcb: 0x%0h, is_signed: %0b, exp_result: 0x%0h, result: 0x%0h, exp_rem: %0b, rem: %0b, exp_div_zero_f: %0b, div_zero_f: %0b", idx, srca, srcb, is_signed, exp_result, result, exp_rem, rem, exp_div_zero_f, div_zero_f);
         num_errors++;
       end
       
