@@ -5,8 +5,10 @@ module divider#(
 ) (
   input  logic [WIDTH-1:0] srca,      // Dividend
   input  logic [WIDTH-1:0] srcb,      // Divisor
+  input  logic             is_signed, // Indicates if the operation is signed(1) or unsigned(0)
   output logic [WIDTH-1:0] result,    // Quotient
-  output logic [WIDTH-1:0] rem        // Remainder
+  output logic [WIDTH-1:0] rem,       // Remainder
+  output logic             div_zero_f // Divide-by-zero flag (asserted when srcb == 0)
 );
 
   // Signed operands are handled by dividing the magnitudes and correcting signs
@@ -23,9 +25,10 @@ module divider#(
   logic [WIDTH-1:0] quo_acc;          // Quotient being built (also holds the shifting dividend)
 
   always_comb begin
-    // Extract signs and compute operand magnitudes (2's complement absolute value)
-    a_sign = srca[WIDTH-1];
-    b_sign = srcb[WIDTH-1];
+    // Extract signs (only meaningful for signed operations) and compute operand magnitudes.
+    // For unsigned operations the operands are used as-is (magnitude = operand).
+    a_sign = srca[WIDTH-1] & is_signed;
+    b_sign = srcb[WIDTH-1] & is_signed;
     abs_a  = a_sign ? (~srca + WIDTH'(1'b1)) : srca;
     abs_b  = b_sign ? (~srcb + WIDTH'(1'b1)) : srcb;
 
@@ -50,11 +53,20 @@ module divider#(
     uq = quo_acc;
     ur = rem_acc[WIDTH-1:0];
 
-    // Sign correction:
-    // - Quotient is negative when dividend and divisor signs differ
-    // - Remainder takes the sign of the dividend (matches SystemVerilog % semantics)
-    result = (a_sign ^ b_sign) ? (~uq + WIDTH'(1'b1)) : uq;
-    rem    =  a_sign           ? (~ur + WIDTH'(1'b1)) : ur;
+    // Divide-by-zero detection
+    div_zero_f = (srcb == '0);
+
+    if (div_zero_f) begin
+      // On divide-by-zero the quotient is all-ones (-1 signed) and the remainder is the dividend
+      result = '1;
+      rem    = srca;
+    end else begin
+      // Sign correction:
+      // - Quotient is negative when dividend and divisor signs differ
+      // - Remainder takes the sign of the dividend (matches SystemVerilog % semantics)
+      result = (a_sign ^ b_sign) ? (~uq + WIDTH'(1'b1)) : uq;
+      rem    =  a_sign           ? (~ur + WIDTH'(1'b1)) : ur;
+    end
   end
 
 endmodule
