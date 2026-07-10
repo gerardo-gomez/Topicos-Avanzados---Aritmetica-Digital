@@ -14,32 +14,38 @@ module adder_sat#(
   output logic [WIDTH-1:0] result
 );
 
-  logic                   cout;                    // Carry out from adder
-  logic [ WIDTH     -1:0] result_pre_sat;          // Direct result from adder (without saturation)
-  logic [(WIDTH + 1)-1:0] ext_result_pre_sat;      // Extended result (complete adder precision with carry out)
-  logic [(WIDTH + 1)-1:0] ext_min_sat_value;       // Extended min saturation value (with sign extension)
-  logic [(WIDTH + 1)-1:0] ext_max_sat_value;       // Extended max saturation value (with sign extension)
+  logic [(WIDTH + 1)-1:0] ext_srca;                // Extended source A
+  logic [(WIDTH + 1)-1:0] ext_srcb;                // Extended source B
+  logic [ WIDTH     -1:0] result_pre_sat;          // Result from adder adjusted to WIDTH bits
+  logic [(WIDTH + 1)-1:0] ext_result_pre_sat;      // Extended result
+  logic [(WIDTH + 1)-1:0] ext_min_sat_value;       // Extended min saturation value
+  logic [(WIDTH + 1)-1:0] ext_max_sat_value;       // Extended max saturation value
   logic                   is_ext_result_under_min; // Indicates if the extended result is less than the min saturation value
   logic                   is_ext_result_over_max;  // Indicates if the extended result is greater than the max saturation value
   logic                   sel_min_sat_value;       // Selects the min saturation value as the result
   logic                   sel_max_sat_value;       // Selects the max saturation value as the result
 
+  // Extend sources to WIDTH + 1 bits
+  always_comb begin
+    ext_srca = {(srca[WIDTH-1] & is_signed), srca};
+    ext_srcb = {(srcb[WIDTH-1] & is_signed), srcb};
+  end
+
   adder #(
-    .WIDTH(WIDTH)
+    .WIDTH(WIDTH + 1)
   ) cla (
-    .srca     (srca          ),
-    .srcb     (srcb          ),
-    .cin      (cin           ),
-    .is_signed(is_signed     ),
-    .result   (result_pre_sat),
-    .cout     (cout          ),
-    .zero_f   (              ),
-    .ov_f     (              )
+    .srca     (ext_srca          ),
+    .srcb     (ext_srcb          ),
+    .cin      (cin               ),
+    .is_signed(is_signed         ),
+    .result   (ext_result_pre_sat),
+    .cout     (                  ),
+    .zero_f   (                  ),
+    .ov_f     (                  )
   );
 
   always_comb begin
-    // Extend result to complete adder precision and sign-extend min/max sat values
-    ext_result_pre_sat = {cout, result_pre_sat};
+    // Extend saturation values to compare with extended result
     ext_min_sat_value  = {(min_sat_value[WIDTH-1] & is_signed), min_sat_value};
     ext_max_sat_value  = {(max_sat_value[WIDTH-1] & is_signed), max_sat_value};
 
@@ -56,6 +62,8 @@ module adder_sat#(
     sel_max_sat_value = sat_to_max & is_ext_result_over_max;
 
     // Select result source
+    result_pre_sat = ext_result_pre_sat[WIDTH-1:0];
+
     result  = '0;
     result |= sel_min_sat_value
             ? min_sat_value

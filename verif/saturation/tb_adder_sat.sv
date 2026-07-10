@@ -64,12 +64,14 @@ module tb_adder_sat;
         min_sat_value[0] = ~min_sat_value[0];
       end
       if (is_signed) begin
+        tmp_exp_result = ({srca[WIDTH-1], srca} + {srcb[WIDTH-1], srcb} + cin);
         if ($signed(min_sat_value) > $signed(max_sat_value)) begin
           tmp_sat_value = min_sat_value;
           min_sat_value = max_sat_value;
           max_sat_value = tmp_sat_value;
         end
       end else begin
+        tmp_exp_result = ({1'b0, srca} + {1'b0, srcb} + cin);
         if ($unsigned(min_sat_value) > $unsigned(max_sat_value)) begin
           tmp_sat_value = min_sat_value;
           min_sat_value = max_sat_value;
@@ -77,7 +79,6 @@ module tb_adder_sat;
         end
       end
       // Expected result
-      tmp_exp_result = (srca + srcb + cin);
       if (is_signed) begin
         if (sat_to_max && ($signed(tmp_exp_result) > $signed(max_sat_value))) begin
           tmp_exp_result = max_sat_value;
