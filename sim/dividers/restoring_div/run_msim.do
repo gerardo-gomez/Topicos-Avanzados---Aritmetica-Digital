@@ -10,18 +10,21 @@ if {[file exists rtl_work]} {
 vlib rtl_work
 vmap work rtl_work
 
-# Supressed messages: Warning vopt-13314 - Defaulting port '' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# Supressed messages:
+# - Warning vopt-13314 - Defaulting port '' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# - Error (suppressible): (vopt-14408) Altera Starter FPGA Edition recommended capacity is 5000 non-OEM instances. There are 6170 non OEM instances. Expect performance to be severely impacted.
+# - Error (suppressible): (vsim-16154) Design size exceeds Questa Altera Starter FPGA Edition recommended capacity limit of 5000. Expect performance to be severely impacted.
 
 # Design files
-vlog -sv -work work -suppress 13314 {./design/adders/fa_gp.sv}
-vlog -sv -work work -suppress 13314 {./design/adders/lcu4.sv}
-vlog -sv -work work -suppress 13314 {./design/adders/cla.sv}
-vlog -sv -work work -suppress 13314 {./design/dividers/restoring_div.sv}
+vlog -sv -work work -suppress 13314 -suppress 14408 -suppress 16154 {./design/adders/fa_gp.sv}
+vlog -sv -work work -suppress 13314 -suppress 14408 -suppress 16154 {./design/adders/lcu4.sv}
+vlog -sv -work work -suppress 13314 -suppress 14408 -suppress 16154 {./design/adders/cla.sv}
+vlog -sv -work work -suppress 13314 -suppress 14408 -suppress 16154 {./design/dividers/restoring_div.sv}
 
 # Testbench files
-vlog -sv -work work -suppress 13314 {./verif/dividers/tb_divider.sv}
+vlog -sv -work work -suppress 13314 -suppress 14408 -suppress 16154 {./verif/dividers/tb_divider.sv}
 
-vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 tb_divider
+vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 -suppress 14408 -suppress 16154 tb_divider
 
 # Waveforms
 #view structure

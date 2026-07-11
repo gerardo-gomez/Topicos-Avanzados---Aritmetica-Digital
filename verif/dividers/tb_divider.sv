@@ -88,7 +88,8 @@ module tb_divider;
       $display ("TEST FAILED");
     end
     
-    $finish();
+//  $finish();
+    $stop();
     
   end
   
