@@ -21,8 +21,7 @@ module divider#(
   logic [WIDTH-1:0] b_comp2;    // Divisor two's complement
   logic [WIDTH-1:0] a_abs;      // Dividend magnitude
 //logic [WIDTH-1:0] b_abs;      // Divisor magnitude
-  logic [WIDTH-1:0] b_neg;      // Divisor negated (two's complement) for subtraction
-  logic [WIDTH  :0] b_neg_ext;  // Divisor negated (two's complement) for subtraction extended 1 bit for the trial subtraction
+  logic [WIDTH-1:0] b_neg;      // Divisor with negative sign to use as subtrahend
 
   // Iterative accumulators for the restoring algorithm
   logic [WIDTH:0]   rem_acc [WIDTH:0]; // Partial remainder (extra bit for the left shift)
@@ -35,26 +34,19 @@ module divider#(
   logic [WIDTH-1:0] rem_comp2;  // Remainder two's complement
   logic [WIDTH-1:0] quo_comp2;  // Quotient two's complement
 
-  // Extract signs and compute operand magnitudes.
+  // Divide-by-zero detection
+  assign div_zero_f = ~(|srcb);
+
+  // Extract operands signs
   // Qualify signs with is_signed for unsigned operations
-  always_comb begin
-    a         = srca;
-    b         = srcb;
-    a_sign    = a[WIDTH-1] & is_signed;
-    b_sign    = b[WIDTH-1] & is_signed;
-    a_comp1   = ~a;
-    b_comp1   = ~b;
-    a_abs     = a_sign
-              ? a_comp2
-              : a;
-//  b_abs     = b_sign
-//            ? b_comp2
-//            : b;
-    b_neg     = b_sign
-              ? b
-              : b_comp2;
-    b_neg_ext = {1'b1, b_neg};
-  end
+  assign a = srca;
+  assign b = srcb;
+  assign a_sign = srca[WIDTH-1] & is_signed;
+  assign b_sign = srcb[WIDTH-1] & is_signed;
+
+  // Source A and B one's complement
+  assign a_comp1 = ~srca;
+  assign b_comp1 = ~srcb;
 
   // Source A two's complement: ~srca + 1
   adder #(
@@ -84,6 +76,17 @@ module divider#(
     .ov_f     (         )
   );
 
+  // Compute dividend magnitude and divisor with negative sign to use as subtrahend
+  assign a_abs = a_sign
+               ? a_comp2
+               : a;
+//assign b_abs = b_sign
+//             ? b_comp2
+//             : b;
+  assign b_neg = b_sign
+               ? b
+               : b_comp2;
+
   // Restoring division on the magnitudes.
   // {rem_acc, quo_acc} is the combined shift register: the dividend starts in quo_acc
   // and the quotient bits are shifted into quo_acc[0] as the dividend leaves quo_acc[MSB].
@@ -95,6 +98,7 @@ module divider#(
       logic [WIDTH:0] rem_acc_pre_sub;  // Partial remainder before substraction
       logic [WIDTH:0] rem_acc_sub;      // Partial remainder subtraction trial
       logic           rem_acc_sub_sign; // Sign of the partial remainder after subtraction trial
+      logic [WIDTH:0] b_neg_ext;        // Divisor with negative sign to use as subtrahend (extended 1 bit to match rem_acc width)
 
       // Shift the {rem_acc, quo_acc} pair left by one, bringing the next dividend bit in
       assign quo_acc[i]       = {quo_acc[i-1][WIDTH-2:0], ~rem_acc_sub_sign};
@@ -105,7 +109,7 @@ module divider#(
         .WIDTH(WIDTH+1)
       ) cla_rem_acc_sub (
         .srca     (rem_acc_pre_sub), // Partial remainder before substraction
-        .srcb     (b_neg_ext      ), // Divisor negated (two's complement) for subtraction
+        .srcb     (b_neg_ext      ), // Divisor with negative sign to use as subtrahend
         .cin      (1'b0           ),
         .is_signed(1'b0           ),
         .result   (rem_acc_sub    ), // Partial remainder after substraction
@@ -113,6 +117,8 @@ module divider#(
         .zero_f   (               ),
         .ov_f     (               )
       );
+
+      assign b_neg_ext = {1'b1, b_neg};
 
       // Trial subtraction: only commit it when the divisor fits (otherwise restore = leave rem_acc)
       assign rem_acc_sub_sign = rem_acc_sub[WIDTH];
@@ -123,30 +129,13 @@ module divider#(
     end : gen_acc
   endgenerate
 
-  always_comb begin
-    // Preeliminary quotient and remainder (magnitude) after algorithm iterations
-    quo_abs   = quo_acc[WIDTH];
-    rem_abs   = rem_acc[WIDTH][WIDTH-1:0];
-    quo_comp1 = ~quo_abs;
-    rem_comp1 = ~rem_abs;
+  // Preeliminary quotient and remainder magnitudes after algorithm iterations
+  assign quo_abs = quo_acc[WIDTH];
+  assign rem_abs = rem_acc[WIDTH][WIDTH-1:0];
 
-    // Divide-by-zero detection
-    div_zero_f = ~(|b);
-
-    // Result override for divide-by-zero and sign correction for signed operations
-    result = div_zero_f
-           ? '1                          // On divide-by-zero the quotient is all-ones (-1 signed)
-           : ( (a_sign ^ b_sign)
-             ? quo_comp2                 // Quotient is negative when dividend and divisor signs differ
-             : quo_abs);
-
-    // Remainder override for divide-by-zero and sign correction for signed operations
-    rem = div_zero_f
-        ? a                              // On divide-by-zero the remainder is the dividend
-        : ( a_sign                       // Remainder takes the sign of the dividend
-          ? rem_comp2
-          : rem_abs);
-  end
+  // Quotient and remainder one's complement
+  assign quo_comp1 = ~quo_abs;
+  assign rem_comp1 = ~rem_abs;
 
   // Quotient two's complement: ~quo + 1
   adder #(
@@ -175,6 +164,20 @@ module divider#(
     .zero_f   (         ),
     .ov_f     (         )
   );
+
+  // Result override for divide-by-zero and sign correction for signed operations
+  assign result = div_zero_f
+                ? '1                  // On divide-by-zero the quotient is all-ones (-1 signed)
+                : ( (a_sign ^ b_sign)
+                  ? quo_comp2         // Quotient is negative when dividend and divisor signs differ
+                  : quo_abs);
+
+  // Remainder override for divide-by-zero and sign correction for signed operations
+  assign rem = div_zero_f
+             ? a                      // On divide-by-zero the remainder is the dividend
+             : ( a_sign               // Remainder takes the sign of the dividend
+               ? rem_comp2
+               : rem_abs);
 
 endmodule
 
