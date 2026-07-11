@@ -11,6 +11,8 @@ module divider#(
   output logic             div_zero_f // Divide-by-zero flag (asserted when srcb == 0)
 );
 
+  localparam int SN = WIDTH; // Stage N / Last stage of the pipeline
+
   logic [WIDTH-1:0] a;          // Dividend
   logic [WIDTH-1:0] b;          // Divisor
   logic             a_sign;     // Dividend sign
@@ -24,8 +26,8 @@ module divider#(
   logic [WIDTH-1:0] b_neg;      // Divisor with negative sign to use as subtrahend
 
   // Iterative accumulators for the restoring algorithm
-  logic [WIDTH:0]   rem_acc [WIDTH:0]; // Partial remainder (extra bit for the left shift)
-  logic [WIDTH-1:0] quo_acc [WIDTH:0]; // Quotient being built (also holds the shifting dividend)
+  logic [WIDTH:0]   rem_acc [SN:0]; // Partial remainder (extra bit for the left shift)
+  logic [WIDTH-1:0] quo_acc [SN:0]; // Quotient being built (also holds the shifting dividend)
 
   logic [WIDTH-1:0] rem_abs;    // Remainder magnitude after algorithm iterations
   logic [WIDTH-1:0] quo_abs;    // Quotient magnitude after algorithm iterations
@@ -33,6 +35,10 @@ module divider#(
   logic [WIDTH-1:0] quo_comp1;  // Quotient one's complement
   logic [WIDTH-1:0] rem_comp2;  // Remainder two's complement
   logic [WIDTH-1:0] quo_comp2;  // Quotient two's complement
+
+  /////////////////////////////////////////////////////////////////
+  // Stage 0
+  /////////////////////////////////////////////////////////////////
 
   // Divide-by-zero detection
   assign div_zero_f = ~(|srcb);
@@ -87,22 +93,26 @@ module divider#(
                ? b
                : b_comp2;
 
+  /////////////////////////////////////////////////////////////////
+  // Stage 1-N
+  /////////////////////////////////////////////////////////////////
+
   // Restoring division on the magnitudes.
   // {rem_acc, quo_acc} is the combined shift register: the dividend starts in quo_acc
   // and the quotient bits are shifted into quo_acc[0] as the dividend leaves quo_acc[MSB].
   assign rem_acc[0] = '0;
   assign quo_acc[0] = a_abs;
   generate
-    genvar i;
-    for (i = 1; i <= WIDTH; i++) begin : gen_acc
+    genvar stage;
+    for (stage = 1; stage <= SN; stage++) begin : gen_acc
       logic [WIDTH:0] rem_acc_pre_sub;  // Partial remainder before substraction
       logic [WIDTH:0] rem_acc_sub;      // Partial remainder subtraction trial
       logic           rem_acc_sub_sign; // Sign of the partial remainder after subtraction trial
       logic [WIDTH:0] b_neg_ext;        // Divisor with negative sign to use as subtrahend (extended 1 bit to match rem_acc width)
 
       // Shift the {rem_acc, quo_acc} pair left by one, bringing the next dividend bit in
-      assign quo_acc[i]       = {quo_acc[i-1][WIDTH-2:0], ~rem_acc_sub_sign};
-      assign rem_acc_pre_sub  = {rem_acc[i-1][WIDTH-1:0], quo_acc[i-1][WIDTH-1]};
+      assign quo_acc[stage]  = {quo_acc[stage-1][WIDTH-2:0], ~rem_acc_sub_sign};
+      assign rem_acc_pre_sub = {rem_acc[stage-1][WIDTH-1:0], quo_acc[stage-1][WIDTH-1]};
 
       // Substract the divisor from the partial remainder
       adder #(
@@ -122,16 +132,20 @@ module divider#(
 
       // Trial subtraction: only commit it when the divisor fits (otherwise restore = leave rem_acc)
       assign rem_acc_sub_sign = rem_acc_sub[WIDTH];
-      assign rem_acc[i]       = rem_acc_sub_sign // Check sign of remainder after substraction
+      assign rem_acc[stage]   = rem_acc_sub_sign // Check sign of remainder after substraction
                               ? rem_acc_pre_sub  // If negative, restore the previous remainder
                               : rem_acc_sub;     // If positive, commit the subtraction result
 
     end : gen_acc
   endgenerate
 
+  /////////////////////////////////////////////////////////////////
+  // Stage N
+  /////////////////////////////////////////////////////////////////
+
   // Preeliminary quotient and remainder magnitudes after algorithm iterations
-  assign quo_abs = quo_acc[WIDTH];
-  assign rem_abs = rem_acc[WIDTH][WIDTH-1:0];
+  assign quo_abs = quo_acc[SN];
+  assign rem_abs = rem_acc[SN][WIDTH-1:0];
 
   // Quotient and remainder one's complement
   assign quo_comp1 = ~quo_abs;
