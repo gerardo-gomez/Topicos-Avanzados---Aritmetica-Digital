@@ -25,8 +25,8 @@ module divider#(
   logic [WIDTH  :0] b_neg_ext;  // Divisor negated (two's complement) for subtraction extended 1 bit for the trial subtraction
 
   // Iterative accumulators for the restoring algorithm
-  logic [WIDTH:0][WIDTH:0]   rem_acc; // Partial remainder (extra bit for the left shift)
-  logic [WIDTH:0][WIDTH-1:0] quo_acc; // Quotient being built (also holds the shifting dividend)
+  logic [WIDTH:0]   rem_acc [WIDTH:0]; // Partial remainder (extra bit for the left shift)
+  logic [WIDTH-1:0] quo_acc [WIDTH:0]; // Quotient being built (also holds the shifting dividend)
 
   logic [WIDTH-1:0] rem_abs;    // Remainder magnitude after algorithm iterations
   logic [WIDTH-1:0] quo_abs;    // Quotient magnitude after algorithm iterations
@@ -131,7 +131,7 @@ module divider#(
     rem_comp1 = ~rem_abs;
 
     // Divide-by-zero detection
-    div_zero_f = ~(|srcb);
+    div_zero_f = ~(|b);
 
     // Result override for divide-by-zero and sign correction for signed operations
     result = div_zero_f
