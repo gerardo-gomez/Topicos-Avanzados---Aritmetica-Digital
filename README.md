@@ -34,11 +34,13 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
   - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/fma/*/run_msim.do
   - Comando para compilar y generar reportes de timing: source ./fpga/fma/*/fpga_flow.sh
 4. Dividers
-5. Floating point
-6. Saturación
+5. Saturación
   - Documento técnico:                                  docs/saturation/saturation.pdf
   - Adder Saturation top module:                        design/saturation/adder_sat.sv
   - Comando para correr simulación de TB Simple:        vsim -c -do ./sim/saturation/run_msim.do
   - Comando para compilar y generar reportes de timing: source ./fpga/saturation/fpga_flow.sh
+6. Floating point
+  - No implementado
 
 ### Proyecto
+1. Neural Network
