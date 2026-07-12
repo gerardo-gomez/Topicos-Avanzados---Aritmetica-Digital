@@ -5,8 +5,10 @@
 module tb_divider;
   parameter  int WIDTH = 64;
 
-  localparam int NUM_TESTS        = 1000;
-  localparam int PIPELINE_LATENCY = WIDTH + 2; // Divider processes 1 bit per cycle + 1 cycle to get absolute values + 1 cycle to apply sign to result
+  localparam int NUM_RANDOM_TESTS   = 1000;
+  localparam int NUM_DIRECTED_TESTS = 10;
+  localparam int NUM_TESTS          = NUM_RANDOM_TESTS + NUM_DIRECTED_TESTS;
+  localparam int PIPELINE_LATENCY   = WIDTH + 2; // Divider processes 1 bit per cycle + 1 cycle to get absolute values + 1 cycle to apply sign to result
   
   logic clk;
   
@@ -46,7 +48,8 @@ module tb_divider;
 
   // Generate test vectors
   initial begin
-    for (int idx = 0; idx < NUM_TESTS; idx++) begin
+    // Randomized tests
+    for (int idx = 0; idx < NUM_RANDOM_TESTS; idx++) begin
       @(posedge clk);
       // Randomize data
       srca     [0] = $urandom();
@@ -66,6 +69,19 @@ module tb_divider;
         exp_rem   [0] = $unsigned(srca[0]) % $unsigned(srcb[0]);
       end
     end // for
+
+    // Directed tests for divide-by-zero
+    repeat (NUM_DIRECTED_TESTS) begin
+      @(posedge clk);
+      // Randomize data
+      srca     [0] = $urandom();
+      srcb     [0] = '0;
+      is_signed[0] = $urandom();
+      // Expected result
+      exp_result    [0] = '1;
+      exp_rem       [0] = srca[0];
+      exp_div_zero_f[0] = 1;
+    end // repeat (NUM_DIRECTED_TESTS)
   end // initial (Generate test vectors)
 
   // Check results
@@ -86,6 +102,10 @@ module tb_divider;
       pass &= (exp_result    [PIPELINE_LATENCY-1] == result);
       pass &= (exp_rem       [PIPELINE_LATENCY-1] == rem);
       pass &= (exp_div_zero_f[PIPELINE_LATENCY-1] == div_zero_f);
+
+//    if (div_zero_f) begin
+//      $display("Divide-by-zero detected, iteration: %0d, srca: 0x%0h, srcb: 0x%0h, is_signed: %0b", idx, srca[PIPELINE_LATENCY-1], srcb[PIPELINE_LATENCY-1], is_signed[PIPELINE_LATENCY-1]);
+//    end
       
       if (pass) begin
         num_pass++;

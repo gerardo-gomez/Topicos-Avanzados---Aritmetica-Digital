@@ -23,23 +23,23 @@ module divider#(
   localparam int S2 = 2;
   localparam int SN = NUM_RESTORING_STAGES + NUM_TWOS_COMPLEMENT_STAGES - 1;
 
-  logic             div_zero_f_ss [SN:S0]; // Divide-by-zero flag
-  logic [WIDTH-1:0] a_ss          [SN:S0]; // Dividend
-  logic [WIDTH-1:0] b_s0;                  // Divisor
-  logic             a_sign_ss     [SN:S0]; // Dividend sign
-  logic             b_sign_ss     [SN:S0]; // Divisor sign
-  logic [WIDTH-1:0] a_comp1_s0;            // Dividend one's complement
-  logic [WIDTH-1:0] b_comp1_s0;            // Divisor one's complement
-  logic [WIDTH-1:0] a_comp2_s0;            // Dividend two's complement
-  logic [WIDTH-1:0] b_comp2_s0;            // Divisor two's complement
-  logic [WIDTH-1:0] a_abs_s0;              // Dividend magnitude
-  logic [WIDTH-1:0] a_abs_s1;              // Dividend magnitude
-//logic [WIDTH-1:0] b_abs_s0;              // Divisor magnitude
-  logic [WIDTH-1:0] b_neg_ss      [SN:S0]; // Divisor with negative sign to use as subtrahend
+  logic [WIDTH-1:0] a_ss          [SN:S0];   // Dividend
+  logic [WIDTH-1:0] b_s0;                    // Divisor
+  logic             a_sign_ss     [SN:S0];   // Dividend sign
+  logic             b_sign_ss     [SN:S0];   // Divisor sign
+  logic [WIDTH-1:0] a_comp1_s0;              // Dividend one's complement
+  logic [WIDTH-1:0] b_comp1_s0;              // Divisor one's complement
+  logic [WIDTH-1:0] a_comp2_s0;              // Dividend two's complement
+  logic [WIDTH-1:0] b_comp2_s0;              // Divisor two's complement
+  logic [WIDTH-1:0] a_abs_s0;                // Dividend magnitude
+  logic [WIDTH-1:0] a_abs_s1;                // Dividend magnitude
+//logic [WIDTH-1:0] b_abs_s0;                // Divisor magnitude
+  logic [WIDTH-1:0] b_neg_ss      [SN-1:S0]; // Divisor with negative sign to use as subtrahend
+  logic             div_zero_f_ss [SN:SN-1]; // Divide-by-zero flag
 
   // Iterative accumulators for the restoring algorithm
-  logic [WIDTH:0]   rem_acc_ss     [SN:S1+1]; // Partial remainder (extra bit for the left shift)
-  logic [WIDTH-1:0] quo_acc_ss     [SN:S1+1]; // Quotient being built (also holds the shifting dividend)
+  logic [WIDTH:0]   rem_acc_ss     [SN:S2];  // Partial remainder (extra bit for the left shift)
+  logic [WIDTH-1:0] quo_acc_ss     [SN:S2];  // Quotient being built (also holds the shifting dividend)
   logic [WIDTH:0]   rem_acc_nxt_ss [SN-1:S1];
   logic [WIDTH-1:0] quo_acc_nxt_ss [SN-1:S1];
 
@@ -55,9 +55,6 @@ module divider#(
   /////////////////////////////////////////////////////////////////
   // Stage 0: Input assignments and get operands absolute values
   /////////////////////////////////////////////////////////////////
-
-  // Divide-by-zero detection
-  assign div_zero_f_ss[S0] = ~(|srcb);
 
   // Extract operands signs
   // Qualify signs with is_signed for unsigned operations
@@ -166,6 +163,12 @@ module divider#(
   endgenerate
 
   /////////////////////////////////////////////////////////////////
+  // Stage N-1: Divide-by-zero detection
+  /////////////////////////////////////////////////////////////////
+
+  assign div_zero_f_ss[SN-1] = ~(|b_neg_ss[SN-1]); // Last stage where the divisor is available to check for divide-by-zero
+
+  /////////////////////////////////////////////////////////////////
   // Stage N: Apply sign to result and output assignments
   /////////////////////////////////////////////////////////////////
 
@@ -205,9 +208,6 @@ module divider#(
     .ov_f     (            )
   );
 
-  // Divide-by-zero output assignment
-  assign div_zero_f = div_zero_f_ss[SN];
-
   // Result override for divide-by-zero and sign correction for signed operations
   assign result = div_zero_f_ss[SN]
                 ? '1                                // On divide-by-zero the quotient is all-ones (-1 signed)
@@ -222,22 +222,25 @@ module divider#(
                ? rem_comp2_sn
                : rem_abs_sn);
 
+  // Divide-by-zero output assignment
+  assign div_zero_f = div_zero_f_ss[SN];
+
   /////////////////////////////////////////////////////////////////
   // Flop pipe stages
   /////////////////////////////////////////////////////////////////
 
   always_ff @(posedge clk) begin
-    a_abs_s1 <= a_abs_s0;
+    a_abs_s1          <= a_abs_s0;
+    div_zero_f_ss[SN] <= div_zero_f_ss[SN-1];
   end
 
   generate
     for (stage = S1; stage <= SN; stage++) begin : gen_staging_1
       always_ff @(posedge clk) begin
-        div_zero_f_ss[stage] <= div_zero_f_ss[stage-1];
-        a_ss         [stage] <= a_ss         [stage-1];
-        b_neg_ss     [stage] <= b_neg_ss     [stage-1];
-        a_sign_ss    [stage] <= a_sign_ss    [stage-1];
-        b_sign_ss    [stage] <= b_sign_ss    [stage-1];
+        a_ss     [stage] <= a_ss     [stage-1];
+        b_neg_ss [stage] <= b_neg_ss [stage-1];
+        a_sign_ss[stage] <= a_sign_ss[stage-1];
+        b_sign_ss[stage] <= b_sign_ss[stage-1];
       end
     end : gen_staging_1
 
