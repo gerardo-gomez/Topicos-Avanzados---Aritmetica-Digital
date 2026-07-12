@@ -6,20 +6,20 @@ module tb_divider;
   parameter  int WIDTH = 64;
 
   localparam int NUM_TESTS        = 1000;
-  localparam int PIPELINE_LATENCY = WIDTH + 2;
+  localparam int PIPELINE_LATENCY = WIDTH + 2; // Divider processes 1 bit per cycle + 1 cycle to get absolute values + 1 cycle to apply sign to result
   
   logic clk;
   
-  logic [WIDTH-1:0] srca      [(WIDTH+1):0];
-  logic [WIDTH-1:0] srcb      [(WIDTH+1):0];
-  logic             is_signed [(WIDTH+1):0];
+  logic [WIDTH-1:0] srca      [PIPELINE_LATENCY-1:0];
+  logic [WIDTH-1:0] srcb      [PIPELINE_LATENCY-1:0];
+  logic             is_signed [PIPELINE_LATENCY-1:0];
   logic [WIDTH-1:0] result;
   logic [WIDTH-1:0] rem;
   logic             div_zero_f;
   
-  logic [WIDTH-1:0] exp_result     [(WIDTH+1):0];
-  logic [WIDTH-1:0] exp_rem        [(WIDTH+1):0];
-  logic             exp_div_zero_f [(WIDTH+1):0];
+  logic [WIDTH-1:0] exp_result     [PIPELINE_LATENCY-1:0];
+  logic [WIDTH-1:0] exp_rem        [PIPELINE_LATENCY-1:0];
+  logic             exp_div_zero_f [PIPELINE_LATENCY-1:0];
   
   int num_pass;
   int num_errors;
@@ -83,15 +83,15 @@ module tb_divider;
     for (int idx = 0; idx < NUM_TESTS; idx++) begin
       @(negedge clk);
       pass = 1;
-      pass &= (exp_result    [WIDTH+1] == result);
-      pass &= (exp_rem       [WIDTH+1] == rem);
-      pass &= (exp_div_zero_f[WIDTH+1] == div_zero_f);
+      pass &= (exp_result    [PIPELINE_LATENCY-1] == result);
+      pass &= (exp_rem       [PIPELINE_LATENCY-1] == rem);
+      pass &= (exp_div_zero_f[PIPELINE_LATENCY-1] == div_zero_f);
       
       if (pass) begin
         num_pass++;
       end else begin
         $error("Error, iteration: %0d, srca: 0x%0h, srcb: 0x%0h, is_signed: %0b, exp_result: 0x%0h, result: 0x%0h, exp_rem: %0b, rem: %0b, exp_div_zero_f: %0b, div_zero_f: %0b",
-               idx, srca[WIDTH+1], srcb[WIDTH+1], is_signed[WIDTH+1], exp_result[WIDTH+1], result, exp_rem[WIDTH+1], rem, exp_div_zero_f[WIDTH+1], div_zero_f);
+               idx, srca[PIPELINE_LATENCY-1], srcb[PIPELINE_LATENCY-1], is_signed[PIPELINE_LATENCY-1], exp_result[PIPELINE_LATENCY-1], result, exp_rem[PIPELINE_LATENCY-1], rem, exp_div_zero_f[PIPELINE_LATENCY-1], div_zero_f);
         num_errors++;
       end
     end // for
@@ -109,18 +109,19 @@ module tb_divider;
     $stop();
   end // initial (Check results)
 
+  // Delay the inputs and expected results to match the pipeline latency of the divider
   generate;
-    genvar i;
-    for (i = 0; i < (WIDTH+1); i++) begin : gen_tb_staging
+    genvar delay;
+    for (delay = 0; delay < (PIPELINE_LATENCY-1); delay++) begin : gen_delay
       always_ff @(posedge clk) begin
-        srca          [i+1] <= srca          [i];
-        srcb          [i+1] <= srcb          [i];
-        is_signed     [i+1] <= is_signed     [i];
-        exp_result    [i+1] <= exp_result    [i];
-        exp_rem       [i+1] <= exp_rem       [i];
-        exp_div_zero_f[i+1] <= exp_div_zero_f[i];
+        srca          [delay+1] <= srca          [delay];
+        srcb          [delay+1] <= srcb          [delay];
+        is_signed     [delay+1] <= is_signed     [delay];
+        exp_result    [delay+1] <= exp_result    [delay];
+        exp_rem       [delay+1] <= exp_rem       [delay];
+        exp_div_zero_f[delay+1] <= exp_div_zero_f[delay];
       end
-    end : gen_tb_staging
+    end : gen_delay
   endgenerate
   
 endmodule
