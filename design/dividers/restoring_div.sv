@@ -53,7 +53,7 @@ module divider#(
   genvar stage;
 
   /////////////////////////////////////////////////////////////////
-  // Stage 0: Input assignments and sources two's complements
+  // Stage 0: Input assignments and get operands absolute values
   /////////////////////////////////////////////////////////////////
 
   // Divide-by-zero detection
@@ -166,7 +166,7 @@ module divider#(
   endgenerate
 
   /////////////////////////////////////////////////////////////////
-  // Stage N / Output assignments
+  // Stage N: Apply sign to result and output assignments
   /////////////////////////////////////////////////////////////////
 
   // Preeliminary quotient and remainder magnitudes after algorithm iterations

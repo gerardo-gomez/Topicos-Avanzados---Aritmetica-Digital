@@ -4,7 +4,9 @@
 
 module tb_divider;
   parameter  int WIDTH = 64;
-  localparam int NUM_TESTS = 4;
+
+  localparam int NUM_TESTS        = 1000;
+  localparam int PIPELINE_LATENCY = WIDTH + 2;
   
   logic clk;
   
@@ -26,6 +28,7 @@ module tb_divider;
   divider #(
     .WIDTH(WIDTH) 
   )dut(
+    .clk       (clk         ),
     .srca      (srca     [0]),
     .srcb      (srcb     [0]),
     .is_signed (is_signed[0]),
@@ -72,7 +75,7 @@ module tb_divider;
 	  num_errors = 0;
     
     // Wait for pipeline to fill
-    repeat (WIDTH+1) begin
+    repeat (PIPELINE_LATENCY) begin
       @(posedge clk);
     end
     
@@ -105,6 +108,20 @@ module tb_divider;
 //  $finish();
     $stop();
   end // initial (Check results)
+
+  generate;
+    genvar i;
+    for (i = 0; i < (WIDTH+1); i++) begin : gen_tb_staging
+      always_ff @(posedge clk) begin
+        srca          [i+1] <= srca          [i];
+        srcb          [i+1] <= srcb          [i];
+        is_signed     [i+1] <= is_signed     [i];
+        exp_result    [i+1] <= exp_result    [i];
+        exp_rem       [i+1] <= exp_rem       [i];
+        exp_div_zero_f[i+1] <= exp_div_zero_f[i];
+      end
+    end : gen_tb_staging
+  endgenerate
   
 endmodule
 
