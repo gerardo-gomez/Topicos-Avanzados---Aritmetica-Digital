@@ -75,3 +75,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/fa_gp.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/lcu4.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/adders/cla.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/dividers/restoring_div.sv
+set_global_assignment -name INFER_RAMS_FROM_RAW_LOGIC OFF
+set_global_assignment -name AUTO_CARRY_CHAINS OFF
+set_global_assignment -name AUTO_RAM_RECOGNITION OFF
+set_global_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF
+set_global_assignment -name AUTO_RAM_BLOCK_BALANCING OFF
+set_global_assignment -name SHIFT_REGISTER_RECOGNITION_ACLR_SIGNAL OFF
