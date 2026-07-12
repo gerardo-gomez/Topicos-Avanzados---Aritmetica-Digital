@@ -238,18 +238,23 @@ module divider#(
     for (stage = S1; stage <= SN; stage++) begin : gen_staging_1
       always_ff @(posedge clk) begin
         a_ss     [stage] <= a_ss     [stage-1];
-        b_neg_ss [stage] <= b_neg_ss [stage-1];
         a_sign_ss[stage] <= a_sign_ss[stage-1];
         b_sign_ss[stage] <= b_sign_ss[stage-1];
       end
     end : gen_staging_1
 
-    for (stage = S2; stage <= SN; stage++) begin : gen_staging_2
+    for (stage = S1; stage <= (SN-1); stage++) begin : gen_staging_2
+      always_ff @(posedge clk) begin
+        b_neg_ss [stage] <= b_neg_ss [stage-1];
+      end
+    end : gen_staging_2
+
+    for (stage = S2; stage <= SN; stage++) begin : gen_staging_3
       always_ff @(posedge clk) begin
         rem_acc_ss[stage] <= rem_acc_nxt_ss[stage-1];
         quo_acc_ss[stage] <= quo_acc_nxt_ss[stage-1];
       end
-    end : gen_staging_2
+    end : gen_staging_3
   endgenerate
 
 endmodule
