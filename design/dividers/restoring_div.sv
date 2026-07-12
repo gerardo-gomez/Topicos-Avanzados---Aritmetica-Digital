@@ -3,6 +3,8 @@
 module divider#(
   parameter int WIDTH = 64
 ) (
+  input  logic             clk,
+
   input  logic [WIDTH-1:0] srca,      // Dividend
   input  logic [WIDTH-1:0] srcb,      // Divisor
   input  logic             is_signed, // Indicates if the operation is signed(1) or unsigned(0)
@@ -11,108 +13,131 @@ module divider#(
   output logic             div_zero_f // Divide-by-zero flag (asserted when srcb == 0)
 );
 
-  localparam int SN = WIDTH; // Stage N / Last stage of the pipeline
+  localparam int NUM_RESTORING_STAGES       = WIDTH;
+  localparam int NUM_TWOS_COMPLEMENT_STAGES = 2;
 
-  logic [WIDTH-1:0] a;          // Dividend
-  logic [WIDTH-1:0] b;          // Divisor
-  logic             a_sign;     // Dividend sign
-  logic             b_sign;     // Divisor sign
-  logic [WIDTH-1:0] a_comp1;    // Dividend one's complement
-  logic [WIDTH-1:0] b_comp1;    // Divisor one's complement
-  logic [WIDTH-1:0] a_comp2;    // Dividend two's complement
-  logic [WIDTH-1:0] b_comp2;    // Divisor two's complement
-  logic [WIDTH-1:0] a_abs;      // Dividend magnitude
-//logic [WIDTH-1:0] b_abs;      // Divisor magnitude
-  logic [WIDTH-1:0] b_neg;      // Divisor with negative sign to use as subtrahend
+  // Pipeline naming convention: _s0 = stage 0, _s1 = stage 1, ..., _sn = stage N (last stage)
+  //                             _ss = array of stages
+  localparam int S0 = 0;
+  localparam int S1 = 1;
+  localparam int S2 = 2;
+  localparam int SN = NUM_RESTORING_STAGES + NUM_TWOS_COMPLEMENT_STAGES - 1;
+
+  logic             div_zero_f_ss [SN:S0]; // Divide-by-zero flag
+  logic [WIDTH-1:0] a_ss          [SN:S0]; // Dividend
+  logic [WIDTH-1:0] b_s0;                  // Divisor
+  logic             a_sign_ss     [SN:S0]; // Dividend sign
+  logic             b_sign_ss     [SN:S0]; // Divisor sign
+  logic [WIDTH-1:0] a_comp1_s0;            // Dividend one's complement
+  logic [WIDTH-1:0] b_comp1_s0;            // Divisor one's complement
+  logic [WIDTH-1:0] a_comp2_s0;            // Dividend two's complement
+  logic [WIDTH-1:0] b_comp2_s0;            // Divisor two's complement
+  logic [WIDTH-1:0] a_abs_s0;              // Dividend magnitude
+  logic [WIDTH-1:0] a_abs_s1;              // Dividend magnitude
+//logic [WIDTH-1:0] b_abs_s0;              // Divisor magnitude
+  logic [WIDTH-1:0] b_neg_ss      [SN:S0]; // Divisor with negative sign to use as subtrahend
 
   // Iterative accumulators for the restoring algorithm
-  logic [WIDTH:0]   rem_acc [SN:0]; // Partial remainder (extra bit for the left shift)
-  logic [WIDTH-1:0] quo_acc [SN:0]; // Quotient being built (also holds the shifting dividend)
+  logic [WIDTH:0]   rem_acc_ss     [SN:S1+1]; // Partial remainder (extra bit for the left shift)
+  logic [WIDTH-1:0] quo_acc_ss     [SN:S1+1]; // Quotient being built (also holds the shifting dividend)
+  logic [WIDTH:0]   rem_acc_nxt_ss [SN-1:S1];
+  logic [WIDTH-1:0] quo_acc_nxt_ss [SN-1:S1];
 
-  logic [WIDTH-1:0] rem_abs;    // Remainder magnitude after algorithm iterations
-  logic [WIDTH-1:0] quo_abs;    // Quotient magnitude after algorithm iterations
-  logic [WIDTH-1:0] rem_comp1;  // Remainder one's complement
-  logic [WIDTH-1:0] quo_comp1;  // Quotient one's complement
-  logic [WIDTH-1:0] rem_comp2;  // Remainder two's complement
-  logic [WIDTH-1:0] quo_comp2;  // Quotient two's complement
+  logic [WIDTH-1:0] rem_abs_sn;    // Remainder magnitude after algorithm iterations
+  logic [WIDTH-1:0] quo_abs_sn;    // Quotient magnitude after algorithm iterations
+  logic [WIDTH-1:0] rem_comp1_sn;  // Remainder one's complement
+  logic [WIDTH-1:0] quo_comp1_sn;  // Quotient one's complement
+  logic [WIDTH-1:0] rem_comp2_sn;  // Remainder two's complement
+  logic [WIDTH-1:0] quo_comp2_sn;  // Quotient two's complement
+
+  genvar stage;
 
   /////////////////////////////////////////////////////////////////
-  // Stage 0
+  // Stage 0: Input assignments and sources two's complements
   /////////////////////////////////////////////////////////////////
 
   // Divide-by-zero detection
-  assign div_zero_f = ~(|srcb);
+  assign div_zero_f_ss[S0] = ~(|srcb);
 
   // Extract operands signs
   // Qualify signs with is_signed for unsigned operations
-  assign a = srca;
-  assign b = srcb;
-  assign a_sign = srca[WIDTH-1] & is_signed;
-  assign b_sign = srcb[WIDTH-1] & is_signed;
+  assign a_ss[S0]      = srca;
+  assign b_s0          = srcb;
+  assign a_sign_ss[S0] = srca[WIDTH-1] & is_signed;
+  assign b_sign_ss[S0] = srcb[WIDTH-1] & is_signed;
 
   // Source A and B one's complement
-  assign a_comp1 = ~srca;
-  assign b_comp1 = ~srcb;
+  assign a_comp1_s0 = ~srca;
+  assign b_comp1_s0 = ~srcb;
 
   // Source A two's complement: ~srca + 1
   adder #(
     .WIDTH(WIDTH)
   ) cla_srca_comp2 (
-    .srca     (a_comp1  ),
-    .srcb     (WIDTH'(1)),
-    .cin      (1'b0     ),
-    .is_signed(1'b0     ),
-    .result   (a_comp2  ),
-    .cout     (         ),
-    .zero_f   (         ),
-    .ov_f     (         )
+    .srca     (a_comp1_s0),
+    .srcb     (WIDTH'(1) ),
+    .cin      (1'b0      ),
+    .is_signed(1'b0      ),
+    .result   (a_comp2_s0),
+    .cout     (          ),
+    .zero_f   (          ),
+    .ov_f     (          )
   );
 
   // Source B two's complement: ~srcb + 1
   adder #(
     .WIDTH(WIDTH)
   ) cla_srcb_comp2 (
-    .srca     (b_comp1  ),
-    .srcb     (WIDTH'(1)),
-    .cin      (1'b0     ),
-    .is_signed(1'b0     ),
-    .result   (b_comp2  ),
-    .cout     (         ),
-    .zero_f   (         ),
-    .ov_f     (         )
+    .srca     (b_comp1_s0),
+    .srcb     (WIDTH'(1) ),
+    .cin      (1'b0      ),
+    .is_signed(1'b0      ),
+    .result   (b_comp2_s0),
+    .cout     (          ),
+    .zero_f   (          ),
+    .ov_f     (          )
   );
 
   // Compute dividend magnitude and divisor with negative sign to use as subtrahend
-  assign a_abs = a_sign
-               ? a_comp2
-               : a;
-//assign b_abs = b_sign
-//             ? b_comp2
-//             : b;
-  assign b_neg = b_sign
-               ? b
-               : b_comp2;
+  assign a_abs_s0    = a_sign_ss[S0]
+                     ? a_comp2_s0
+                     : a_ss[S0];
+//assign b_abs_s0    = b_sign_ss[S0]
+//                   ? b_comp2_s0
+//                   : b_s0;
+  assign b_neg_ss[S0] = b_sign_ss[S0]
+                      ? b_s0
+                      : b_comp2_s0;
 
   /////////////////////////////////////////////////////////////////
-  // Stage 1-N
+  // Stage 1 to N-1: Iterative restoring division algorithm
   /////////////////////////////////////////////////////////////////
 
   // Restoring division on the magnitudes.
   // {rem_acc, quo_acc} is the combined shift register: the dividend starts in quo_acc
   // and the quotient bits are shifted into quo_acc[0] as the dividend leaves quo_acc[MSB].
-  assign rem_acc[0] = '0;
-  assign quo_acc[0] = a_abs;
   generate
-    genvar stage;
-    for (stage = 1; stage <= SN; stage++) begin : gen_acc
-      logic [WIDTH:0] rem_acc_pre_sub;  // Partial remainder before substraction
-      logic [WIDTH:0] rem_acc_sub;      // Partial remainder subtraction trial
-      logic           rem_acc_sub_sign; // Sign of the partial remainder after subtraction trial
-      logic [WIDTH:0] b_neg_ext;        // Divisor with negative sign to use as subtrahend (extended 1 bit to match rem_acc width)
+    for (stage = S1; stage < (NUM_RESTORING_STAGES + S1); stage++) begin : gen_restoring_div
+      logic [WIDTH:0]   b_neg_ext;         // Divisor with negative sign to use as subtrahend (extended 1 bit to match rem_acc width)
+      logic [WIDTH:0]   rem_acc_pre_shift; // Partial remainder from previous iteration
+      logic [WIDTH:0]   rem_acc_pre_sub;   // Partial remainder before substraction
+      logic [WIDTH:0]   rem_acc_sub;       // Partial remainder subtraction trial
+      logic             rem_acc_sub_sign;  // Sign of the partial remainder after subtraction trial
+      logic [WIDTH-1:0] quo_acc_pre_shift; // Quotient being built (also holds the shifting dividend) from previous iteration
+      logic [WIDTH-1:0] quo_acc;           // Quotient being built (also holds the shifting dividend)
+
+      if (stage == 1) begin
+      // Initialize {rem_acc, quo_acc} = A (dividend)
+        assign rem_acc_pre_shift = '0;
+        assign quo_acc_pre_shift = a_abs_s1;
+      end else begin
+        assign rem_acc_pre_shift = rem_acc_ss[stage];
+        assign quo_acc_pre_shift = quo_acc_ss[stage];
+      end
 
       // Shift the {rem_acc, quo_acc} pair left by one, bringing the next dividend bit in
-      assign quo_acc[stage]  = {quo_acc[stage-1][WIDTH-2:0], ~rem_acc_sub_sign};
-      assign rem_acc_pre_sub = {rem_acc[stage-1][WIDTH-1:0], quo_acc[stage-1][WIDTH-1]};
+      assign quo_acc         = {quo_acc_pre_shift[WIDTH-2:0], 1'b0};
+      assign rem_acc_pre_sub = {rem_acc_pre_shift[WIDTH-1:0], quo_acc_pre_shift[WIDTH-1]};
 
       // Substract the divisor from the partial remainder
       adder #(
@@ -128,70 +153,101 @@ module divider#(
         .ov_f     (               )
       );
 
-      assign b_neg_ext = {1'b1, b_neg};
+      assign b_neg_ext        = {1'b1, b_neg_ss[stage]};
+      assign rem_acc_sub_sign = rem_acc_sub[WIDTH];
 
       // Trial subtraction: only commit it when the divisor fits (otherwise restore = leave rem_acc)
-      assign rem_acc_sub_sign = rem_acc_sub[WIDTH];
-      assign rem_acc[stage]   = rem_acc_sub_sign // Check sign of remainder after substraction
-                              ? rem_acc_pre_sub  // If negative, restore the previous remainder
-                              : rem_acc_sub;     // If positive, commit the subtraction result
-
-    end : gen_acc
+      assign rem_acc_nxt_ss[stage] = rem_acc_sub_sign                         // Check sign of remainder after substraction
+                                   ? rem_acc_pre_sub                          // If negative, restore the previous remainder
+                                   : rem_acc_sub;                             // If positive, commit the subtraction result
+      assign quo_acc_nxt_ss[stage] = {quo_acc[WIDTH-1:1], ~rem_acc_sub_sign}; // If negative issue 0 in the quotient LSB
+                                                                              // If positive issue 1 in the quotient LSB
+    end : gen_restoring_div
   endgenerate
 
   /////////////////////////////////////////////////////////////////
-  // Stage N
+  // Stage N / Output assignments
   /////////////////////////////////////////////////////////////////
 
   // Preeliminary quotient and remainder magnitudes after algorithm iterations
-  assign quo_abs = quo_acc[SN];
-  assign rem_abs = rem_acc[SN][WIDTH-1:0];
+  assign quo_abs_sn = quo_acc_ss[SN];
+  assign rem_abs_sn = rem_acc_ss[SN][WIDTH-1:0];
 
   // Quotient and remainder one's complement
-  assign quo_comp1 = ~quo_abs;
-  assign rem_comp1 = ~rem_abs;
+  assign quo_comp1_sn = ~quo_abs_sn;
+  assign rem_comp1_sn = ~rem_abs_sn;
 
   // Quotient two's complement: ~quo + 1
   adder #(
     .WIDTH(WIDTH)
   ) cla_quo_comp2 (
-    .srca     (quo_comp1),
-    .srcb     (WIDTH'(1)),
-    .cin      (1'b0     ),
-    .is_signed(1'b0     ),
-    .result   (quo_comp2),
-    .cout     (         ),
-    .zero_f   (         ),
-    .ov_f     (         )
+    .srca     (quo_comp1_sn),
+    .srcb     (WIDTH'(1)   ),
+    .cin      (1'b0        ),
+    .is_signed(1'b0        ),
+    .result   (quo_comp2_sn),
+    .cout     (            ),
+    .zero_f   (            ),
+    .ov_f     (            )
   );
 
   // Remainder two's complement: ~rem + 1
   adder #(
     .WIDTH(WIDTH)
   ) cla_rem_comp2 (
-    .srca     (rem_comp1),
-    .srcb     (WIDTH'(1)),
-    .cin      (1'b0     ),
-    .is_signed(1'b0     ),
-    .result   (rem_comp2),
-    .cout     (         ),
-    .zero_f   (         ),
-    .ov_f     (         )
+    .srca     (rem_comp1_sn),
+    .srcb     (WIDTH'(1)   ),
+    .cin      (1'b0        ),
+    .is_signed(1'b0        ),
+    .result   (rem_comp2_sn),
+    .cout     (            ),
+    .zero_f   (            ),
+    .ov_f     (            )
   );
 
+  // Divide-by-zero output assignment
+  assign div_zero_f = div_zero_f_ss[SN];
+
   // Result override for divide-by-zero and sign correction for signed operations
-  assign result = div_zero_f
-                ? '1                  // On divide-by-zero the quotient is all-ones (-1 signed)
-                : ( (a_sign ^ b_sign)
-                  ? quo_comp2         // Quotient is negative when dividend and divisor signs differ
-                  : quo_abs);
+  assign result = div_zero_f_ss[SN]
+                ? '1                                // On divide-by-zero the quotient is all-ones (-1 signed)
+                : ( (a_sign_ss[SN] ^ b_sign_ss[SN])
+                  ? quo_comp2_sn                    // Quotient is negative when dividend and divisor signs differ
+                  : quo_abs_sn);
 
   // Remainder override for divide-by-zero and sign correction for signed operations
-  assign rem = div_zero_f
-             ? a                      // On divide-by-zero the remainder is the dividend
-             : ( a_sign               // Remainder takes the sign of the dividend
-               ? rem_comp2
-               : rem_abs);
+  assign rem = div_zero_f_ss[SN]
+             ? a_ss[SN]          // On divide-by-zero the remainder is the dividend
+             : ( a_sign_ss[SN]   // Remainder takes the sign of the dividend
+               ? rem_comp2_sn
+               : rem_abs_sn);
+
+  /////////////////////////////////////////////////////////////////
+  // Flop pipe stages
+  /////////////////////////////////////////////////////////////////
+
+  always_ff @(posedge clk) begin
+    a_abs_s1 <= a_abs_s0;
+  end
+
+  generate
+    for (stage = S1; stage <= SN; stage++) begin : gen_staging_1
+      always_ff @(posedge clk) begin
+        div_zero_f_ss[stage] <= div_zero_f_ss[stage-1];
+        a_ss         [stage] <= a_ss         [stage-1];
+        b_neg_ss     [stage] <= b_neg_ss     [stage-1];
+        a_sign_ss    [stage] <= a_sign_ss    [stage-1];
+        b_sign_ss    [stage] <= b_sign_ss    [stage-1];
+      end
+    end : gen_staging_1
+
+    for (stage = S2; stage <= SN; stage++) begin : gen_staging_2
+      always_ff @(posedge clk) begin
+        rem_acc_ss[stage] <= rem_acc_nxt_ss[stage-1];
+        quo_acc_ss[stage] <= quo_acc_nxt_ss[stage-1];
+      end
+    end : gen_staging_2
+  endgenerate
 
 endmodule
 
