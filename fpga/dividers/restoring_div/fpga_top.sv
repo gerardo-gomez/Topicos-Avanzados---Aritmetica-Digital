@@ -47,7 +47,7 @@ module fpga_top #(
 
   divider #(
     .WIDTH(WIDTH)
-  ) divider (
+  ) restoring_div (
     .clk       (clk       ),
     .srca      (srca      ),
     .srcb      (srcb      ),
