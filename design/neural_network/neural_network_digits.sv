@@ -48,7 +48,7 @@ module neural_network_digits #(
     .NUM_MULS  (NUM_MULS    ),
     .SRC1_WIDTH(WEIGHT_WIDTH),
     .SRC3_WIDTH(ACC_WIDTH   )
-  ) (
+  ) fma_dp (
     .srca     (    ),
     .srcb     (    ),
     .srcc     (    ),
