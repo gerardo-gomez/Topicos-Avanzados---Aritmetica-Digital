@@ -2,7 +2,7 @@
 //              result = (srca[0] * srcb[0]) + (srca[1] * srcb[1]) + ... + (srca[N-1] * srcb[N-1]) + srcc
 
 module fma_dp #(
-  parameter  int NUM_MULS     = 16,                                        // Number of multiplications (vector size)
+  parameter  int NUM_MULS     = 8,                                         // Number of multiplications (vector size)
   parameter  int SRC1_WIDTH   = 8,                                         // Vector 1 width
   parameter  int SRC2_WIDTH   = SRC1_WIDTH,                                // Vector 2 width
   parameter  int SRC3_WIDTH   = 32,                                        // Scalar addend width

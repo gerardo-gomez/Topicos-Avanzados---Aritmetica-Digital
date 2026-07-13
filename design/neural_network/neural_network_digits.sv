@@ -41,7 +41,7 @@ module neural_network_digits #(
   localparam int NUM_OUTPUT_NEURONS = 10; // Numero de neuronas en la capa de salida (una por digito)
 
   // Parametros especificos de la implementacion
-  localparam int NUM_MULS = 16; // Numero de multiplicadores en paralelo en FMA dot-product
+  localparam int NUM_MULS = 8; // Numero de multiplicadores en paralelo en FMA dot-product
 
   // Multiplicadores en paralelo con arbol de CSAs (FMA dot-product)
   fma_dp #(

@@ -2,7 +2,7 @@
 //              The output of this module is the two operands resulting from the Wallace tree. The final addition is done outside this module.
 
 module multiplier #(
-  parameter  int SRC1_WIDTH   =  32,
+  parameter  int SRC1_WIDTH   =  8,
   parameter  int SRC2_WIDTH   =  SRC1_WIDTH,
 //localparam int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH)
   parameter  int RESULT_WIDTH = (SRC1_WIDTH + SRC2_WIDTH), // DON'T CHANGE (localparam not supported by Quartus)
