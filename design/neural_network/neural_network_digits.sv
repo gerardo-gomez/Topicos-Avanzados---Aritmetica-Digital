@@ -28,6 +28,8 @@ module neural_network_digits #(
                                                                             // entre inferencias puede quedar en cualquier valor.
 );
 
+  localparam int NUM_PIXELS = 64; // Numero de pixeles en la imagen (8x8 = 64)
+
   // Parametros de cuantizacion entera
   localparam int WEIGHT_WIDTH      = 8;  // Pesos capa 1 y 2
   localparam int BIAS_WIDTH        = 32; // Bias capa 1 y 2
@@ -54,6 +56,16 @@ module neural_network_digits #(
     .srcc     (    ),
     .is_signed(1'b1),
     .result   (    )
+  );
+
+  weights_rom weights_rom (
+      .addr   (),
+      .weights()
+  );
+
+  biases_rom biases_rom (
+      .addr(),
+      .bias()
   );
 
 endmodule
