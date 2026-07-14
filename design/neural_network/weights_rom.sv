@@ -1,6 +1,6 @@
 // Description: ROM with asynchrounous read logic with the weights for layer 1 and layer 2.
 //              Original memory layout: layer1: 16 neurons x 64 int8 weights, then layer2: 10 x 16 = total 1184 8-bit entries
-//              Adjusted memory layout to read 8 weight values per read (1184 / 8)                 = total 148 64-bit entries
+//              Adjusted memory layout to read 8 weight values per read (1184 / 8):                = total 148 64-bit entries
 // Notes about synthesis in Quartus:
 // - M10K RAM blocks cannot be inferred in the Cyclone V due to asynchronous
 //   read logic. Using FPGA core logic instead.

@@ -1,0 +1,1 @@
+// Descripcion: FSM controladora para orquestrar uso de FMA dot-product y lectura de ROMs, con contadores anidados de pasada, neurona y capa.
