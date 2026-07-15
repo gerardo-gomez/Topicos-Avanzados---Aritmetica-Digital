@@ -14,12 +14,15 @@ module control_fsm
 
   t_state state, state_nxt;
 
-  logic [COUNTER_PASSES_WIDTH-1:0] counter_passes, counter_passes_nxt;
-  logic [COUNTER_NEURON_WIDTH-1:0] counter_neuron, counter_neuron_nxt;
-  logic [COUNTER_LAYER_WIDTH -1:0] counter_layer,  counter_layer_nxt;
+  logic [COUNTER_PASSES_WIDTH -1:0] counter_passes,  counter_passes_nxt;
+  logic [COUNTER_NEURONS_WIDTH-1:0] counter_neurons, counter_neurons_nxt;
+  logic [COUNTER_WEIGHTS_WIDTH-1:0] counter_weights, counter_weights_nxt;
 
-  logic counter_passes_en, counter_neuron_en, counter_layer_en;
-  logic counter_passes_rst, counter_neuron_rst, counter_layer_rst;
+  logic counter_passes_en,  counter_neurons_en,  counter_weights_en;
+  logic counter_passes_rst, counter_neurons_rst, counter_weights_rst;
+
+  logic counter_passes_layer_1_done,  counter_passes_layer_2_done;
+  logic counter_neurons_layer_1_done, counter_neurons_layer_2_done;
 
   /////////////////////////////////////////////////////////////
   // State transition logic
@@ -31,9 +34,9 @@ module control_fsm
     end else begin
       state_nxt = state;
       unique case (state)
-        IDLE:    state_nxt = start                                      ? LAYER_1 : IDLE;
-        LAYER_1: state_nxt = (counter_layer == COUNTER_LAYER_WIDTH'(1)) ? LAYER_2 : LAYER_1;
-        LAYER_2: state_nxt = (counter_layer == COUNTER_LAYER_WIDTH'(2)) ? DONE    : LAYER_2;
+        IDLE:    state_nxt =  start                                                       ? LAYER_1 : IDLE;
+        LAYER_1: state_nxt = (counter_passes_layer_1_done & counter_neurons_layer_1_done) ? LAYER_2 : LAYER_1;
+        LAYER_2: state_nxt = (counter_passes_layer_2_done & counter_neurons_layer_2_done) ? DONE    : LAYER_2;
         DONE:    state_nxt = IDLE;
         default: state_nxt = IDLE;
       endcase
@@ -45,42 +48,42 @@ module control_fsm
   /////////////////////////////////////////////////////////////
 
   always_comb begin
-    done               = 1'b0;
-    counter_passes_en  = 1'b0;
-    counter_neuron_en  = 1'b0;
-    counter_layer_en   = 1'b0;
-    counter_passes_rst = 1'b0;
-    counter_neuron_rst = 1'b0;
-    counter_layer_rst  = 1'b0;
+    done                = 1'b0;
+    counter_weights_en  = 1'b0;
+    counter_weights_rst = 1'b0;
+    counter_passes_en   = 1'b0;
+    counter_passes_rst  = 1'b0;
+    counter_neurons_en  = 1'b0;
+    counter_neurons_rst = 1'b0;
     unique case (state)
       IDLE: begin
-        counter_passes_rst = 1'b1;
-        counter_neuron_rst = 1'b1;
-        counter_layer_rst  = 1'b1;
+        counter_weights_rst = 1'b1;
+        counter_passes_rst  = 1'b1;
+        counter_neurons_rst = 1'b1;
       end
       LAYER_1: begin
+        counter_weights_en = 1'b1;
         counter_passes_en  = 1'b1;
-        counter_neuron_en  = counter_passes == COUNTER_PASSES_WIDTH'(NUM_LAYER_1_PASSES);
-        counter_layer_en   = counter_neuron == COUNTER_NEURON_WIDTH'(NUM_HIDDEN_NEURONS);
-        counter_passes_rst = counter_neuron_en | counter_layer_en;
+        counter_passes_rst = counter_passes_layer_1_done;
+        counter_neurons_en = counter_passes_layer_1_done;
       end
       LAYER_2: begin
+        counter_weights_en = 1'b1;
         counter_passes_en  = 1'b1;
-        counter_neuron_en  = counter_passes == COUNTER_PASSES_WIDTH'(NUM_LAYER_2_PASSES);
-        counter_layer_en   = counter_neuron == COUNTER_NEURON_WIDTH'(NUM_HIDDEN_NEURONS + NUM_OUTPUT_NEURONS);
-        counter_passes_rst = counter_neuron_en | counter_layer_en;
+        counter_passes_rst = counter_passes_layer_2_done;
+        counter_neurons_en = counter_passes_layer_2_done;
       end
       DONE: begin
         done = 1'b1;
       end
       default: begin
-        done               = 1'b0;
-        counter_passes_en  = 1'b0;
-        counter_neuron_en  = 1'b0;
-        counter_layer_en   = 1'b0;
-        counter_passes_rst = 1'b0;
-        counter_neuron_rst = 1'b0;
-        counter_layer_rst  = 1'b0;
+        done                = 1'b0;
+        counter_weights_en  = 1'b0;
+        counter_weights_rst = 1'b0;
+        counter_passes_en   = 1'b0;
+        counter_passes_rst  = 1'b0;
+        counter_neurons_en  = 1'b0;
+        counter_neurons_rst = 1'b0;
       end
     endcase
   end
@@ -89,9 +92,22 @@ module control_fsm
   // ROM addresses generation
   /////////////////////////////////////////////////////////////
 
+  assign weights_rom_addr = counter_weights;
+  assign biases_rom_addr  = counter_neurons;
+
   /////////////////////////////////////////////////////////////
   // Counters
   /////////////////////////////////////////////////////////////
+
+  always_comb begin
+    if (rst | counter_weights_rst) begin
+      counter_weights_nxt = '0;
+    end else if (counter_weights_en) begin
+      counter_weights_nxt = counter_weights + 1'b1;
+    end else begin
+      counter_weights_nxt = counter_weights;
+    end
+  end
 
   always_comb begin
     if (rst | counter_passes_rst) begin
@@ -103,35 +119,30 @@ module control_fsm
     end
   end
 
+  assign counter_passes_layer_1_done = counter_passes == (NUM_LAYER_1_PASSES - 1);
+  assign counter_passes_layer_2_done = counter_passes == (NUM_LAYER_2_PASSES - 1);
+
   always_comb begin
-    if (rst | counter_neuron_rst) begin
-      counter_neuron_nxt = '0;
-    end else if (counter_neuron_en) begin
-      counter_neuron_nxt = counter_neuron + 1'b1;
+    if (rst | counter_neurons_rst) begin
+      counter_neurons_nxt = '0;
+    end else if (counter_neurons_en) begin
+      counter_neurons_nxt = counter_neurons + 1'b1;
     end else begin
-      counter_neuron_nxt = counter_neuron;
+      counter_neurons_nxt = counter_neurons;
     end
   end
 
-  always_comb begin
-    if (rst | counter_layer_rst) begin
-      counter_layer_nxt = '0;
-    end else if (counter_layer_en) begin
-      counter_layer_nxt = counter_layer + 1'b1;
-    end else begin
-      counter_layer_nxt = counter_layer;
-    end
-  end
+  assign counter_neurons_layer_1_done = counter_neurons == (NUM_HIDDEN_NEURONS - 1);
+  assign counter_neurons_layer_2_done = counter_neurons == (NUM_TOTAL_NEURONS  - 1);
 
   /////////////////////////////////////////////////////////////
   // Flops
   /////////////////////////////////////////////////////////////
 
   always_ff @(posedge clk) begin
-    state          <= state_nxt;
-    counter_passes <= counter_passes_nxt;
-    counter_neuron <= counter_neuron_nxt;
-    counter_layer  <= counter_layer_nxt;
+    state           <= state_nxt;
+    counter_passes  <= counter_passes_nxt;
+    counter_neurons <= counter_neurons_nxt;
   end
 
 endmodule

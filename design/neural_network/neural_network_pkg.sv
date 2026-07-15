@@ -31,6 +31,7 @@ package neural_network_pkg;
 
   parameter int NUM_HIDDEN_NEURONS = 16; // Numero de neuronas en la capa oculta
   parameter int NUM_OUTPUT_NEURONS = 10; // Numero de neuronas en la capa de salida (una por digito)
+  parameter int NUM_TOTAL_NEURONS  = NUM_HIDDEN_NEURONS + NUM_OUTPUT_NEURONS;
 
   parameter int NUM_LAYERS = 2;
 
@@ -46,14 +47,14 @@ package neural_network_pkg;
 
   // Original memory layout: layer1: 16 neurons x 64 int8 weights, then layer2: 10 x 16 = total 1184 8-bit entries
   // Adjusted memory layout to read 8 weight values per read (1184 / 8):                = total 148 64-bit entries
-  parameter int WEIGHTS_ROM_DEPTH      = 148;
-  parameter int WEIGHTS_ROM_ADDR_WIDTH = $clog2(WEIGHTS_ROM_DEPTH); // 148 entradas de 64 bits (8 pesos por entrada). Ver weights_rom.sv para detalles
+  parameter int WEIGHTS_ROM_DEPTH      = ((NUM_HIDDEN_NEURONS * NUM_PIXELS) + (NUM_OUTPUT_NEURONS * NUM_HIDDEN_NEURONS)) / NUM_MULS;
+  parameter int WEIGHTS_ROM_ADDR_WIDTH = $clog2(WEIGHTS_ROM_DEPTH); // 148 entradas de 64 bits (8 pesos por entrada).
   parameter int WEIGHTS_ROM_DATA_WIDTH = NUM_MULS * WEIGHT_WIDTH;   // 8 pesos de 8 bits = 64 bits por entrada
   parameter     WEIGHTS_ROM_FILE       = "weights.hex";
   // Memory layout: 16 layer-1 biases then 10 layer-2 biases, int32 = total 26 32-bit entries
-  parameter int BIASES_ROM_DEPTH       = 26;
-  parameter int BIASES_ROM_ADDR_WIDTH  = $clog2(BIASES_ROM_DEPTH);  // 26 entradas de 32 bits (1 bias por entrada). Ver biases_rom.sv para detalles
-  parameter int BIASES_ROM_DATA_WIDTH  = BIAS_WIDTH;
+  parameter int BIASES_ROM_DEPTH       = NUM_TOTAL_NEURONS;
+  parameter int BIASES_ROM_ADDR_WIDTH  = $clog2(BIASES_ROM_DEPTH);  // 26 entradas de 32 bits (1 bias por entrada).
+  parameter int BIASES_ROM_DATA_WIDTH  = BIAS_WIDTH;                // 1 bias de 32 bits por entrada
   parameter     BIASES_ROM_FILE        = "biases.hex";
 
   /////////////////////////////////////////////////////////////
@@ -70,9 +71,9 @@ package neural_network_pkg;
   parameter int NUM_LAYER_1_PASSES = NUM_PIXELS         / NUM_MULS; // 64 pixeles / 8 multiplicadores = 8 pasadas por neurona oculta
   parameter int NUM_LAYER_2_PASSES = NUM_HIDDEN_NEURONS / NUM_MULS; // 16 neuronas ocultas / 8 multiplicadores = 2 pasadas por neurona de salida
 
-  parameter int COUNTER_PASSES_WIDTH = $clog2(NUM_LAYER_1_PASSES                      + 1);
-  parameter int COUNTER_NEURON_WIDTH = $clog2(NUM_HIDDEN_NEURONS + NUM_OUTPUT_NEURONS + 1);
-  parameter int COUNTER_LAYER_WIDTH  = $clog2(NUM_LAYERS                              + 1);
+  parameter int COUNTER_PASSES_WIDTH  = $clog2(NUM_LAYER_1_PASSES + 1);
+  parameter int COUNTER_NEURONS_WIDTH = $clog2(BIASES_ROM_DEPTH   + 1); // Or $clog2(NUM_TOTAL_NEURONS) = $clog(26)
+  parameter int COUNTER_WEIGHTS_WIDTH = $clog2(WEIGHTS_ROM_DEPTH  + 1); // 8 weights per count, we need to count 148 for the 1184 weights
 
   /////////////////////////////////////////////////////////////
   // Funciones auxiliares
