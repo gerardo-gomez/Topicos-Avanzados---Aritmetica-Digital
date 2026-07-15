@@ -101,7 +101,7 @@ module control_fsm
 
         is_pass_0         = counter_passes_is_zero;
         is_layer_1        = 1'b1;
-        sel_pixels_group  = t_sel_pixels_group'(counter_passes);
+        sel_pixels_group  = t_pixels_group_idx'(counter_passes);
         sel_hidden_neuron = t_hidden_neuron_idx'(counter_neurons);
 
         hidden_neuron_en = counter_passes_layer_1_done;
@@ -115,7 +115,7 @@ module control_fsm
         counter_neurons_en = counter_passes_layer_2_done;
 
         is_pass_0                = counter_passes_is_zero;
-        sel_hidden_neurons_group = t_sel_hidden_neurons_group'(counter_passes);
+        sel_hidden_neurons_group = t_hidden_neurons_group_idx'(counter_passes);
         sel_output_neuron        = f_convert_global_to_output_neuron_idx(t_global_neuron_idx'(counter_neurons));
 
         output_neuron_en = counter_passes_layer_2_done;

@@ -46,7 +46,8 @@ package neural_network_pkg;
   parameter int IMAGE_PIXEL_WIDTH     = 4; // Bits por píxel (uint4, 0..15)
   parameter int IMAGE_HORIZONTAL_SIZE = 8; // Columnas de la imagen
   parameter int IMAGE_VERTICAL_SIZE   = 8; // Filas de la imagen
-  parameter int DIGIT_WIDTH           = 5; // Bits de la salida (rango 0..9, sobra un bit)
+//parameter int DIGIT_WIDTH           = 5; // Bits de la salida (rango 0..9, sobra un bit)
+  parameter int DIGIT_WIDTH           = 4; // En el TB se usan 4 bits para el digito
 
   parameter int NUM_PIXELS = IMAGE_HORIZONTAL_SIZE * IMAGE_VERTICAL_SIZE; // Numero de pixeles en la imagen (8x8 = 64)
 
@@ -82,12 +83,12 @@ package neural_network_pkg;
   parameter int WEIGHTS_ROM_DEPTH      = ((NUM_HIDDEN_NEURONS * NUM_PIXELS) + (NUM_OUTPUT_NEURONS * NUM_HIDDEN_NEURONS)) / NUM_MULS;
   parameter int WEIGHTS_ROM_ADDR_WIDTH = $clog2(WEIGHTS_ROM_DEPTH); // 148 entradas de 64 bits (8 pesos por entrada).
   parameter int WEIGHTS_ROM_DATA_WIDTH = NUM_MULS * WEIGHT_WIDTH;   // 8 pesos de 8 bits = 64 bits por entrada
-  parameter     WEIGHTS_ROM_FILE       = "weights.hex";
+  parameter     WEIGHTS_ROM_FILE       = "./design/neural_network/weights.hex";
   // Memory layout: 16 layer-1 biases then 10 layer-2 biases, int32 = total 26 32-bit entries
   parameter int BIASES_ROM_DEPTH       = NUM_TOTAL_NEURONS;
   parameter int BIASES_ROM_ADDR_WIDTH  = $clog2(BIASES_ROM_DEPTH);  // 26 entradas de 32 bits (1 bias por entrada).
   parameter int BIASES_ROM_DATA_WIDTH  = BIAS_WIDTH;                // 1 bias de 32 bits por entrada
-  parameter     BIASES_ROM_FILE        = "biases.hex";
+  parameter     BIASES_ROM_FILE        = "./design/neural_network/biases.hex";
 
   /////////////////////////////////////////////////////////////
   // Parametros de control FSM

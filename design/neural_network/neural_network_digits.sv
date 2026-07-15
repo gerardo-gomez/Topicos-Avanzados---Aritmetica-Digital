@@ -77,7 +77,7 @@ module neural_network_digits
     .NUM_MULS  (NUM_MULS        ),
     .SRC1_WIDTH(HIDDEN_ACT_WIDTH),
     .SRC2_WIDTH(WEIGHT_WIDTH    ),
-    .SRC3_WIDTH(BIAS_WIDTH      ),
+    .SRC3_WIDTH(BIAS_WIDTH      )
   ) fma_dp (
     .srca     (fma_dp_srca  ),
     .srcb     (fma_dp_srcb  ),
@@ -231,6 +231,8 @@ module neural_network_digits
       predicted_digit_nxt = predicted_digit;
     end
   end
+
+  assign digit = predicted_digit;
 
   /////////////////////////////////////////////////////////////
   // Flops

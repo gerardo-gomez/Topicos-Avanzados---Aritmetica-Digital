@@ -45,12 +45,12 @@ module neural_network_digits_tb;
 
   task automatic load_files();
     int fd, code;
-    $readmemh("test_images.hex", test_pixels);
-    fd = $fopen("test_labels.txt", "r");
+    $readmemh("./verif/neural_network/test_images.hex", test_pixels);
+    fd = $fopen("./verif/neural_network/test_labels.txt", "r");
     if (fd == 0) $fatal(1, "cannot open test_labels.txt");
     for (int i = 0; i < NUM_TEST_IMAGES; i++) code = $fscanf(fd, "%d\n", labels[i]);
     $fclose(fd);
-    fd = $fopen("test_golden.txt", "r");
+    fd = $fopen("./verif/neural_network/test_golden.txt", "r");
     if (fd == 0) $fatal(1, "cannot open test_golden.txt");
     for (int i = 0; i < NUM_TEST_IMAGES; i++) code = $fscanf(fd, "%d\n", golden[i]);
     $fclose(fd);
