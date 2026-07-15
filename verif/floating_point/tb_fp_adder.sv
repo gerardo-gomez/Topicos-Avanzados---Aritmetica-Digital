@@ -20,7 +20,7 @@
 //============================================================================
 
 module tb_fp_adder;
-  parameter string VECTOR_FILE = "f16_vectors_add.txt";
+  parameter string VECTOR_FILE = "./verif/floating_point/f16_vectors_add.txt";
 
   logic clk;
 
