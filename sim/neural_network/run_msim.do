@@ -18,7 +18,7 @@ vlog -sv -work work -suppress 13314 {./design/adders/csa.sv}
 vlog -sv -work work -suppress 13314 {./design/adders/wallace_tree.sv}
 vlog -sv -work work -suppress 13314 {./design/adders/fa_gp.sv}
 vlog -sv -work work -suppress 13314 {./design/adders/lcu4.sv}
-vlog -sv -work work -suppress 13314 {./design/adders/cla.sv}
+vlog -sv -work work -suppress 13314 {./design/adders/adders.sv}
 vlog -sv -work work -suppress 13314 {./design/multipliers/booth4_wallace_no_cpa_mul.sv}
 vlog -sv -work work -suppress 13314 {./design/fma/fma_dp.sv}
 vlog -sv -work work -suppress 13314 {./design/neural_network/neural_network_pkg.sv}

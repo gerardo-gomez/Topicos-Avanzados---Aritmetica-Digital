@@ -166,7 +166,7 @@ module neural_network_digits
   /////////////////////////////////////////////////////////////
 
   always_comb begin
-    if (rst | acc_rst) begin
+    if (acc_rst) begin
       acc_nxt = '0;
     end else if (acc_en) begin
       acc_nxt = fma_dp_result;
@@ -187,7 +187,7 @@ module neural_network_digits
       assign is_selected = (sel_hidden_neuron == hidden_neuron_idx);
 
       always_comb begin
-        if (rst | neuron_rst) begin
+        if (neuron_rst) begin
           hidden_act_nxt[hidden_neuron_idx] = '0;
         end else if (hidden_neuron_en & is_selected) begin
           // ReLU + >>5 + clamp 255
@@ -204,11 +204,9 @@ module neural_network_digits
   // Output neurons
   /////////////////////////////////////////////////////////////
 
-  assign is_higher_score = f_is_higher_score(fma_dp_result, argmax);
-
   // Argmax
   always_comb begin
-    if (rst | neuron_rst) begin
+    if (neuron_rst) begin
       argmax_nxt = ARGMAX_INIT;
     end else if (output_neuron_en) begin
       argmax_nxt = is_higher_score
@@ -219,9 +217,15 @@ module neural_network_digits
     end
   end
 
+  argmax_cmp argmax_cmp (
+    .candidate_score   (fma_dp_result  ),
+    .current_best_score(argmax         ),
+    .is_higher_score   (is_higher_score)
+  );
+
   // Predicted digit
   always_comb begin
-    if (rst | neuron_rst) begin
+    if (neuron_rst) begin
       predicted_digit_nxt = t_digit'(0);
     end else if (output_neuron_en) begin
       predicted_digit_nxt = is_higher_score
@@ -245,4 +249,20 @@ module neural_network_digits
     predicted_digit <= predicted_digit_nxt;
   end
 
-endmodule
+endmodule : neural_network_digits
+
+// Wrapper de funcion de comparacion signed para argmax
+// Devuelve 1 si candidate_score es mayor que current_best_score, sino devuelve 0
+// - Queremos que el comparador signed este dentro de un modulo para analizar los recursos
+//   inferidos en sintesis ya que se utiliza el operador behavioral ">" en f_is_higher_score
+module argmax_cmp
+    import neural_network_pkg::*;
+(
+    input  t_final_score candidate_score,
+    input  t_final_score current_best_score,
+    output logic         is_higher_score
+);
+
+  assign is_higher_score = f_is_higher_score(candidate_score, current_best_score);
+
+endmodule : argmax_cmp

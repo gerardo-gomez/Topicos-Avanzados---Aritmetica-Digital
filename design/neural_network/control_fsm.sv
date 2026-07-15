@@ -36,6 +36,10 @@ module control_fsm
   logic [COUNTER_NEURONS_WIDTH-1:0] counter_neurons, counter_neurons_nxt;
   logic [COUNTER_WEIGHTS_WIDTH-1:0] counter_weights, counter_weights_nxt;
 
+  logic [COUNTER_PASSES_WIDTH -1:0] counter_passes_inc;
+  logic [COUNTER_NEURONS_WIDTH-1:0] counter_neurons_inc;
+  logic [COUNTER_WEIGHTS_WIDTH-1:0] counter_weights_inc;
+
   logic counter_passes_en,  counter_neurons_en,  counter_weights_en;
   logic counter_passes_rst, counter_neurons_rst, counter_weights_rst;
 
@@ -159,21 +163,36 @@ module control_fsm
   // Counters
   /////////////////////////////////////////////////////////////
 
+  // Weights counter
   always_comb begin
-    if (rst | counter_weights_rst) begin
+    if (counter_weights_rst) begin
       counter_weights_nxt = '0;
     end else if (counter_weights_en) begin
-      counter_weights_nxt = counter_weights + 1'b1;
+      counter_weights_nxt = counter_weights_inc;
     end else begin
       counter_weights_nxt = counter_weights;
     end
   end
 
+  rca #(
+    .WIDTH(COUNTER_WEIGHTS_WIDTH)
+  ) rca_counter_weights_inc (
+    .srca      (counter_weights          ),
+    .srcb      (COUNTER_WEIGHTS_WIDTH'(1)),
+    .cin       (1'b0                     ),
+    .is_signed (1'b0                     ),
+    .result    (counter_weights_inc      ),
+    .cout      (                         ),
+    .zero_f    (                         ),
+    .ov_f      (                         )
+  );
+
+  // Passes counter
   always_comb begin
-    if (rst | counter_passes_rst) begin
+    if (counter_passes_rst) begin
       counter_passes_nxt = '0;
     end else if (counter_passes_en) begin
-      counter_passes_nxt = counter_passes + 1'b1;
+      counter_passes_nxt = counter_passes_inc;
     end else begin
       counter_passes_nxt = counter_passes;
     end
@@ -183,15 +202,42 @@ module control_fsm
   assign counter_passes_layer_2_done = counter_passes == (NUM_LAYER_2_PASSES - 1);
   assign counter_passes_is_zero      = ~(|counter_passes);
 
+  rca #(
+    .WIDTH(COUNTER_PASSES_WIDTH)
+  ) rca_counter_passes_inc (
+    .srca      (counter_passes          ),
+    .srcb      (COUNTER_PASSES_WIDTH'(1)),
+    .cin       (1'b0                     ),
+    .is_signed (1'b0                     ),
+    .result    (counter_passes_inc       ),
+    .cout      (                         ),
+    .zero_f    (                         ),
+    .ov_f      (                         )
+  );
+
+  // Neurons counter
   always_comb begin
-    if (rst | counter_neurons_rst) begin
+    if (counter_neurons_rst) begin
       counter_neurons_nxt = '0;
     end else if (counter_neurons_en) begin
-      counter_neurons_nxt = counter_neurons + 1'b1;
+      counter_neurons_nxt = counter_neurons_inc;
     end else begin
       counter_neurons_nxt = counter_neurons;
     end
   end
+
+  rca #(
+    .WIDTH(COUNTER_NEURONS_WIDTH)
+  ) rca_counter_neurons_inc (
+    .srca      (counter_neurons          ),
+    .srcb      (COUNTER_NEURONS_WIDTH'(1)),
+    .cin       (1'b0                     ),
+    .is_signed (1'b0                     ),
+    .result    (counter_neurons_inc       ),
+    .cout      (                         ),
+    .zero_f    (                         ),
+    .ov_f      (                         )
+  );
 
   assign counter_neurons_layer_1_done = counter_neurons == (NUM_HIDDEN_NEURONS - 1);
   assign counter_neurons_layer_2_done = counter_neurons == (NUM_TOTAL_NEURONS  - 1);

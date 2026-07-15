@@ -71,7 +71,7 @@ module fma_dp #(
     .operands_out(wallace_operands_out)
   );
 
-  adder #(
+  cla #(
     .WIDTH(RESULT_WIDTH)
   ) cla (
     .srca     (wallace_operands_out[0]),

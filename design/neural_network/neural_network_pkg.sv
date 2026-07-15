@@ -122,7 +122,7 @@ package neural_network_pkg;
     acc_relu    = (acc[ACC_WIDTH-1])                           // ReLU: si el MSB es 1 (negativo) entonces 0, sino el valor original
                 ? 0
                 : acc;
-    acc_shifted = acc_relu >> 5;                               // Shift a la derecha 5 bits (dividir entre 32)
+    acc_shifted = {{5{1'b0}}, acc_relu[ACC_WIDTH-1:5]};        // acc_relu >> 5: Shift a la derecha 5 bits (dividir entre 32)
     acc_clamped = (|acc_shifted[ACC_WIDTH-1:HIDDEN_ACT_WIDTH]) // Clamp a [0,255]. Si es mayor que 255 entonces saturar a 255, sino el valor original
                 ? {ACC_WIDTH{1'b1}}
                 : acc_shifted;
