@@ -66,8 +66,8 @@ module fp_adder (
     logic [4:0]  ea, eb;
     logic [9:0]  ma, mb;
 
-    logic        a_zero, a_sub, a_inf, a_nan, a_snan;
-    logic        b_zero, b_sub, b_inf, b_nan, b_snan;
+    logic        a_zero, a_inf, a_nan, a_snan;
+    logic        b_zero, b_inf, b_nan, b_snan;
 
     logic [10:0] sig_a, sig_b;     // significand with implicit bit (11 bits)
     int          ea_eff, eb_eff;   // effective (biased) exponent, subnormal mapped to 1
@@ -92,13 +92,11 @@ module fp_adder (
     sb = srcb[15] ^ op;   eb = srcb[14:10]; mb = srcb[9:0]; // op=1 (sub): a - b = a + (-b), only b's sign flips
 
     a_zero = (ea == 5'd0)  && (ma == 10'd0);
-    a_sub  = (ea == 5'd0)  && (ma != 10'd0);
     a_inf  = (ea == 5'd31) && (ma == 10'd0);
     a_nan  = (ea == 5'd31) && (ma != 10'd0);
     a_snan = a_nan && ~ma[9];
 
     b_zero = (eb == 5'd0)  && (mb == 10'd0);
-    b_sub  = (eb == 5'd0)  && (mb != 10'd0);
     b_inf  = (eb == 5'd31) && (mb == 10'd0);
     b_nan  = (eb == 5'd31) && (mb != 10'd0);
     b_snan = b_nan && ~mb[9];
@@ -165,7 +163,7 @@ module fp_adder (
 
       // Exact alignment: 11-bit significand + 29 low bits captures any shift (diff <= 29)
       big_ext   = {31'd0, big_sig}   << 29;
-      small_ext = ({31'd0, small_sig} << 29) >> diff;
+      small_ext = ({31'd0, small_sig} << 29) >> $unsigned(diff);
 
       S        = eff_sub ? (big_ext - small_ext) : (big_ext + small_ext);
       sign_res = sign_big;
@@ -177,7 +175,7 @@ module fp_adder (
       else begin
         // Normalize: bring MSB of S to bit 41
         lead       = f_clz42(S);
-        norm       = S << lead;
+        norm       = S << $unsigned(lead);
         e_out_tent = e_big + 2 - lead;        // tentative biased exponent (normalized)
 
         // Right shift to extract the 11-bit significand (subnormals shift further)
@@ -190,10 +188,10 @@ module fp_adder (
           sticky = 1'b1;
         end
         else begin
-          shifted    = norm >> rsh;
+          shifted    = norm >> $unsigned(rsh);
           sig11      = shifted[10:0];
           guard      = norm[rsh-1];
-          stick_mask = (rsh <= 1) ? 42'd0 : ((42'd1 << (rsh-1)) - 42'd1);
+          stick_mask = (rsh <= 1) ? 42'd0 : ((42'd1 << $unsigned(rsh-1)) - 42'd1);
           sticky     = |(norm & stick_mask);
         end
 
