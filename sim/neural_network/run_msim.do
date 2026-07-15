@@ -33,8 +33,8 @@ vlog -sv -work work -suppress 13314 {./verif/neural_network/neural_network_digit
 vsim -t 1ps -L rtl_work -L work -voptargs="+acc" -suppress 13314 neural_network_digits_tb
 
 # Waveforms
-#view structure
-#view signals
-#do ./sim/neural_network/wave.do
+view structure
+view signals
+do ./sim/neural_network/wave.do
 
 run -all

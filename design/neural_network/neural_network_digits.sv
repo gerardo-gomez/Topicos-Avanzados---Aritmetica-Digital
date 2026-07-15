@@ -74,10 +74,10 @@ module neural_network_digits
 
   // Multiplicadores en paralelo con arbol de CSAs
   fma_dp #(
-    .NUM_MULS  (NUM_MULS        ),
-    .SRC1_WIDTH(HIDDEN_ACT_WIDTH),
-    .SRC2_WIDTH(WEIGHT_WIDTH    ),
-    .SRC3_WIDTH(BIAS_WIDTH      )
+    .NUM_MULS  (NUM_MULS         ),
+    .SRC1_WIDTH(FMA_DP_SRCA_WIDTH),
+    .SRC2_WIDTH(FMA_DP_SRCB_WIDTH),
+    .SRC3_WIDTH(FMA_DP_SRCC_WIDTH)
   ) fma_dp (
     .srca     (fma_dp_srca  ),
     .srcb     (fma_dp_srcb  ),
@@ -88,11 +88,11 @@ module neural_network_digits
 
   // Seleccion de operandos para el FMA dot-product
   always_comb begin
-    // Pasar imagen a formato de fila de pixeles con signo extendido para cada multiplicador en paralelo
+    // Pasar imagen a formato de fila de pixeles extendidos con 0
     // Coinciden el numero de grupos con el numero de filas de la imagen y el numero de pixeles por grupo con el numero de columnas de la imagen (8x8)
-    for (int col = 0; col < IMAGE_HORIZONTAL_SIZE; col++) begin
-      for (int row = 0; row < IMAGE_VERTICAL_SIZE; row++) begin
-        pixels_group[row][col] = {{(WEIGHT_WIDTH-IMAGE_PIXEL_WIDTH){image[col][row][IMAGE_PIXEL_WIDTH-1]}}, image[col][row]};
+    for (int row = 0; row < IMAGE_VERTICAL_SIZE; row++) begin
+      for (int col = 0; col < IMAGE_HORIZONTAL_SIZE; col++) begin
+        pixels_group[row][col] = {{(FMA_DP_SRCA_WIDTH-IMAGE_PIXEL_WIDTH){1'b0}}, image[col][row]};
       end
     end
     // Pasar activaciones de la capa de neuronas oculta a formato de grupo de 8
@@ -191,7 +191,7 @@ module neural_network_digits
           hidden_act_nxt[hidden_neuron_idx] = '0;
         end else if (hidden_neuron_en & is_selected) begin
           // ReLU + >>5 + clamp 255
-          hidden_act_nxt[hidden_neuron_idx] = f_requantize(acc);
+          hidden_act_nxt[hidden_neuron_idx] = f_requantize(fma_dp_result);
         end else begin
           hidden_act_nxt[hidden_neuron_idx] = hidden_act[hidden_neuron_idx];
         end
@@ -204,7 +204,7 @@ module neural_network_digits
   // Output neurons
   /////////////////////////////////////////////////////////////
 
-  assign is_higher_score = f_is_higher_score(acc, argmax);
+  assign is_higher_score = f_is_higher_score(fma_dp_result, argmax);
 
   // Argmax
   always_comb begin
@@ -212,7 +212,7 @@ module neural_network_digits
       argmax_nxt = ARGMAX_INIT;
     end else if (output_neuron_en) begin
       argmax_nxt = is_higher_score
-                 ? acc
+                 ? fma_dp_result
                  : argmax;
     end else begin
       argmax_nxt = argmax;
