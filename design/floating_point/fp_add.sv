@@ -34,6 +34,30 @@ module fp_adder (
     end
   endfunction
 
+  // NaN propagation, matching Berkeley SoftFloat softfloat_propagateNaNF16UI (8086/default):
+  // propagate an input NaN with the quiet bit set (payload preserved); pick larger magnitude on ties.
+  function automatic logic [15:0] f_propagate_nan(input logic [15:0] uiA, input logic [15:0] uiB);
+    logic        is_nan_a, is_nan_b, is_snan_a, is_snan_b;
+    logic [15:0] nA, nB, larger;
+    logic [14:0] magA, magB;
+    is_nan_a  = (uiA[14:10] == 5'h1F) && (uiA[9:0] != 10'd0);
+    is_nan_b  = (uiB[14:10] == 5'h1F) && (uiB[9:0] != 10'd0);
+    is_snan_a = is_nan_a && ~uiA[9];
+    is_snan_b = is_nan_b && ~uiB[9];
+    nA   = uiA | 16'h0200;        // quiet the NaN
+    nB   = uiB | 16'h0200;
+    magA = uiA[14:0];
+    magB = uiB[14:0];
+    larger = (magA < magB) ? nB : (magB < magA) ? nA : ((uiA < uiB) ? nA : nB);
+    if (is_snan_a || is_snan_b) begin
+      if (is_snan_a) f_propagate_nan = is_snan_b ? larger : (is_nan_b ? nB : nA);
+      else           f_propagate_nan = is_nan_a ? nA : nB;
+    end
+    else begin
+      f_propagate_nan = larger;
+    end
+  endfunction
+
   always_comb begin
     // ---------------------------------------------------------------------
     // Unpack operands
@@ -99,10 +123,15 @@ module fp_adder (
     // ---------------------------------------------------------------------
     // Special cases
     // ---------------------------------------------------------------------
-    if (a_nan || b_nan || (a_inf && b_inf && (sa != sb))) begin
-      // NaN propagation and Inf - Inf are invalid -> canonical qNaN
+    if (a_nan || b_nan) begin
+      // A NaN operand propagates (payload preserved, quieted) per SoftFloat
+      result    = f_propagate_nan(srca, srcb);
+      fflags[4] = a_snan | b_snan;                  // NV set only for signaling NaN
+    end
+    else if (a_inf && b_inf && (sa != sb)) begin
+      // Inf - Inf is invalid -> generated (default) canonical qNaN
       result    = QNAN16;
-      fflags[4] = a_snan | b_snan | (a_inf & b_inf & (sa != sb)); // NV
+      fflags[4] = 1'b1;                             // NV
     end
     else if (a_inf || b_inf) begin
       // Infinity dominates (same-sign inf, or inf + finite)
