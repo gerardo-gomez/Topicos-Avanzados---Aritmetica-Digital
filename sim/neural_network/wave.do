@@ -32,6 +32,8 @@ add wave -noupdate /neural_network_digits_tb/dut/acc_rst
 add wave -noupdate /neural_network_digits_tb/dut/hidden_neuron_en
 add wave -noupdate /neural_network_digits_tb/dut/output_neuron_en
 add wave -noupdate /neural_network_digits_tb/dut/neuron_rst
+add wave -noupdate /neural_network_digits_tb/dut/predicted_digit_nxt
+add wave -noupdate /neural_network_digits_tb/dut/predicted_digit
 add wave -noupdate -divider FSM
 add wave -noupdate /neural_network_digits_tb/dut/control_fsm/state
 add wave -noupdate /neural_network_digits_tb/dut/control_fsm/counter_passes
@@ -47,7 +49,7 @@ add wave -noupdate /neural_network_digits_tb/dut/control_fsm/counter_passes_laye
 add wave -noupdate /neural_network_digits_tb/dut/control_fsm/counter_neurons_layer_2_done
 add wave -noupdate /neural_network_digits_tb/dut/control_fsm/counter_neurons_layer_1_done
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1559916 ps} 0}
+WaveRestoreCursors {{Cursor 1} {12170000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 333
 configure wave -valuecolwidth 100
@@ -63,4 +65,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {1399089 ps} {1710911 ps}
+WaveRestoreZoom {12014089 ps} {12325911 ps}

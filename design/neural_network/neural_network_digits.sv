@@ -68,6 +68,11 @@ module neural_network_digits
   logic                      output_neuron_en;
   logic                      neuron_rst;
 
+  // Delay flops
+  logic [FMA_DP_RESULT_WIDTH-1:0] delayed_fma_dp_result;
+  logic                           delayed_output_neuron_en;
+  t_output_neuron_idx             delayed_sel_output_neuron;
+
   /////////////////////////////////////////////////////////////
   // FMA dot-product
   /////////////////////////////////////////////////////////////
@@ -208,9 +213,9 @@ module neural_network_digits
   always_comb begin
     if (neuron_rst) begin
       argmax_nxt = ARGMAX_INIT;
-    end else if (output_neuron_en) begin
+    end else if (delayed_output_neuron_en) begin
       argmax_nxt = is_higher_score
-                 ? fma_dp_result
+                 ? delayed_fma_dp_result
                  : argmax;
     end else begin
       argmax_nxt = argmax;
@@ -218,25 +223,25 @@ module neural_network_digits
   end
 
   argmax_cmp argmax_cmp (
-    .candidate_score   (fma_dp_result  ),
-    .current_best_score(argmax         ),
-    .is_higher_score   (is_higher_score)
+    .candidate_score   (delayed_fma_dp_result), // Se necesita flopear el resultado del FMA FP antes del comparador para no empeorar la ruta critica del FMA DP
+    .current_best_score(argmax               ),
+    .is_higher_score   (is_higher_score      )
   );
 
   // Predicted digit
   always_comb begin
     if (neuron_rst) begin
       predicted_digit_nxt = t_digit'(0);
-    end else if (output_neuron_en) begin
+    end else if (delayed_output_neuron_en) begin
       predicted_digit_nxt = is_higher_score
-                          ? t_digit'(sel_output_neuron)
+                          ? t_digit'(delayed_sel_output_neuron)
                           : predicted_digit;
     end else begin
       predicted_digit_nxt = predicted_digit;
     end
   end
 
-  assign digit = predicted_digit;
+  assign digit = predicted_digit_nxt;
 
   /////////////////////////////////////////////////////////////
   // Flops
@@ -247,6 +252,12 @@ module neural_network_digits
     hidden_act      <= hidden_act_nxt;
     argmax          <= argmax_nxt;
     predicted_digit <= predicted_digit_nxt;
+  end
+
+  always_ff @(posedge clk) begin
+    delayed_fma_dp_result     <= fma_dp_result;
+    delayed_output_neuron_en  <= output_neuron_en;
+    delayed_sel_output_neuron <= sel_output_neuron;
   end
 
 endmodule : neural_network_digits
