@@ -83,3 +83,4 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/neural_network/bi
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/neural_network/weights_rom.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/neural_network/control_fsm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../design/neural_network/neural_network_digits.sv
+set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
