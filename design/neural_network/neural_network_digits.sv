@@ -52,8 +52,8 @@ module neural_network_digits
   logic               [FMA_DP_SRCC_WIDTH  -1:0] fma_dp_srcc;   // Bias de cada neurona (int32) o acumulador
   logic               [FMA_DP_RESULT_WIDTH-1:0] fma_dp_result; // Resultado parcial de la suma de productos y bias (int32) de cada neurona
 
-  t_pixel_ext  [NUM_PIXELS_GROUPS        -1:0][NUM_MULS-1:0] pixels_group;
-  t_hidden_act [NUM_HIDDEN_NEURONS_GROUPS-1:0][NUM_MULS-1:0] hidden_acts_group;
+  t_pixel_ext      [NUM_PIXELS_GROUPS        -1:0][NUM_MULS-1:0] pixels_group;
+  t_hidden_act_ext [NUM_HIDDEN_NEURONS_GROUPS-1:0][NUM_MULS-1:0] hidden_acts_group;
 
   // Señales de control FSM
   t_pixels_group_idx         sel_pixels_group;         // Selector de grupo de pixeles (3 bits para 8 grupos)
@@ -88,16 +88,16 @@ module neural_network_digits
 
   // Seleccion de operandos para el FMA dot-product
   always_comb begin
-    // Pasar imagen a formato de fila de pixeles extendidos con 0
+    // Pasar imagen a formato de fila de pixeles extendidos con 0 para forzar que sea positivo
     // Coinciden el numero de grupos con el numero de filas de la imagen y el numero de pixeles por grupo con el numero de columnas de la imagen (8x8)
     for (int row = 0; row < IMAGE_VERTICAL_SIZE; row++) begin
       for (int col = 0; col < IMAGE_HORIZONTAL_SIZE; col++) begin
-        pixels_group[row][col] = {{(FMA_DP_SRCA_WIDTH-IMAGE_PIXEL_WIDTH){1'b0}}, image[col][row]};
+        pixels_group[row][col] = {{(FMA_DP_SRCA_WIDTH-IMAGE_PIXEL_WIDTH){1'b0}}, image[row][col]};
       end
     end
-    // Pasar activaciones de la capa de neuronas oculta a formato de grupo de 8
+    // Pasar activaciones de la capa de neuronas oculta a formato de grupo de 8 extendidos con 0 para forzar que sea positivo
     for (int neuron = 0; neuron < NUM_HIDDEN_NEURONS; neuron++) begin
-      hidden_acts_group[neuron / NUM_MULS][neuron % NUM_MULS] = hidden_act[neuron];
+      hidden_acts_group[neuron / NUM_MULS][neuron % NUM_MULS] = {{(FMA_DP_SRCA_WIDTH-HIDDEN_ACT_WIDTH){1'b0}}, hidden_act[neuron]};
     end
 
     // Source A

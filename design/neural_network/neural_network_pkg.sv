@@ -59,7 +59,7 @@ package neural_network_pkg;
   /////////////////////////////////////////////////////////////
 
   parameter int NUM_MULS                 = 8;                             // Numero de multiplicadores en paralelo en FMA dot-product
-  parameter int FMA_DP_SRCA_WIDTH        = HIDDEN_ACT_WIDTH;              // Ancho de operando A del FMA dot-product: Activacion oculta (mas ancho) o pixel
+  parameter int FMA_DP_SRCA_WIDTH        = HIDDEN_ACT_WIDTH + 1;          // Ancho de operando A del FMA dot-product: Activacion oculta (mas ancho) o pixel + 1 para forzar que los valores siempre sean positivos
   parameter int FMA_DP_SRCB_WIDTH        = WEIGHT_WIDTH;                  // Ancho de operando B del FMA dot-product: Pesos
   parameter int FMA_DP_SRCC_WIDTH        = BIAS_WIDTH;                    // Ancho de operando C del FMA dot-product: Bias o acumulador (mismo ancho)
   parameter int FMA_DP_RESULT_WIDTH      = FMA_DP_SRCC_WIDTH;             // Ancho de resultado del FMA dot-product: FMA_DP_SRCC_WIDTH > (FMA_DP_SRCA_WIDTH + FMA_DP_SRCB_WIDTH)
@@ -72,7 +72,8 @@ package neural_network_pkg;
 
   typedef logic [SEL_PIXELS_GROUP_WIDTH        -1:0] t_pixels_group_idx;
   typedef logic [SEL_HIDDEN_NEURONS_GROUP_WIDTH-1:0] t_hidden_neurons_group_idx;
-  typedef logic [FMA_DP_SRCA_WIDTH             -1:0] t_pixel_ext;                // Tipo de dato para un pixel con signo extendido para ajustarse a ancho de operando de multiplicador 8x8 (uint8)
+  typedef logic [FMA_DP_SRCA_WIDTH             -1:0] t_pixel_ext;                // Tipo de dato para un pixel extendido con 0 para ajustarse a ancho de operando de multiplicador y forzar que sea positivo
+  typedef logic [FMA_DP_SRCA_WIDTH             -1:0] t_hidden_act_ext;           // Tipo de dato para una activacion oculta extendido con 0 para ajustarse a ancho de operando de multiplicador y forzar que sea positivo
 
   /////////////////////////////////////////////////////////////
   // Parametros de las ROMs de pesos y bias
