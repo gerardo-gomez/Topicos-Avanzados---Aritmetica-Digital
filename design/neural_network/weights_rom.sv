@@ -10,11 +10,13 @@ module weights_rom
     output logic [NUM_MULS-1:0][WEIGHT_WIDTH          -1:0] weights // Read Data
 );
 
+  parameter ROM_FILE = WEIGHTS_ROM_FILE;
+
   logic [WEIGHTS_ROM_DATA_WIDTH-1:0] read_data;
 
   (* romstyle = "logic" *) logic [WEIGHTS_ROM_DATA_WIDTH-1:0] rom_data [WEIGHTS_ROM_DEPTH-1:0];
 
-  initial $readmemh (WEIGHTS_ROM_FILE, rom_data);
+  initial $readmemh (ROM_FILE, rom_data);
 
   assign read_data = rom_data[addr]; // Asynchronous read logic
 

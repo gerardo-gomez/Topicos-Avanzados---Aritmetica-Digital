@@ -3,24 +3,23 @@
 module fpga_top
     import neural_network_pkg::*;
 (
-  input  logic                         clk,
-  input  logic                         rst_in,
-  input  logic                         start_in,
-  input  logic [IMAGE_PIXEL_WIDTH-1:0] image_in [IMAGE_HORIZONTAL_SIZE-1:0]
-                                                [IMAGE_VERTICAL_SIZE  -1:0],
-  output logic                         done_out,
-  output logic [DIGIT_WIDTH-1:0]       digit_out
+  input  logic                     clk,
+  input  logic                     rst_in,
+  input  logic                     start_in,
+  input  t_pixel [NUM_PIXELS-1:0]  image_in,
+  output logic                     done_out,
+  output logic   [DIGIT_WIDTH-1:0] digit_out
 );
 
   // Flopped FPGA inputs signals
   // FF.D
-  logic                         rst_d;
-  logic                         start_d;
-  logic [IMAGE_PIXEL_WIDTH-1:0] image_d [IMAGE_HORIZONTAL_SIZE-1:0][IMAGE_VERTICAL_SIZE-1:0];
+  logic                    rst_d;
+  logic                    start_d;
+  t_pixel [NUM_PIXELS-1:0] image_d;
   // FF.Q
-  logic                         rst_q;
-  logic                         start_q;
-  logic [IMAGE_PIXEL_WIDTH-1:0] image_q [IMAGE_HORIZONTAL_SIZE-1:0][IMAGE_VERTICAL_SIZE-1:0];
+  logic                    rst_q;
+  logic                    start_q;
+  t_pixel [NUM_PIXELS-1:0] image_q;
 
   // Flopped FPGA outputs signals
   // FF.D
@@ -50,6 +49,9 @@ module fpga_top
     .digit(digit)
   );
 
+  defparam neural_network_digits.weights_rom.ROM_FILE = "../../design/neural_network/weights.hex";
+  defparam neural_network_digits.biases_rom.ROM_FILE  = "../../design/neural_network/biases.hex";
+
   //////////////////////////////////////////////////////////////////////////////////////
   // Connect flopped neural_network_digits instance signals
   //////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +59,14 @@ module fpga_top
   // Flopped FPGA inputs to neural_network_digits instance inputs
   assign rst   = rst_q;
   assign start = start_q;
-  assign image = image_q;
+//assign image = image_q;
+  always_comb begin
+    for (int row = 0; row < IMAGE_VERTICAL_SIZE; row++) begin
+      for (int col = 0; col < IMAGE_HORIZONTAL_SIZE; col++) begin
+        image[row][col] = image_q[row*IMAGE_HORIZONTAL_SIZE + col];
+      end
+    end
+  end
 
   // Flopped neural_network_digits instance outputs to FPGA outputs
   assign done_out  = done_q;

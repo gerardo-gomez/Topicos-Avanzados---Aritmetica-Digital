@@ -10,11 +10,13 @@ module biases_rom
     output logic [BIAS_WIDTH           -1:0] bias  // Read Data
 );
 
+  parameter ROM_FILE = BIASES_ROM_FILE;
+
   logic [BIASES_ROM_DATA_WIDTH-1:0] read_data;
 
   (* romstyle = "logic" *) logic [BIASES_ROM_DATA_WIDTH-1:0] rom_data [BIASES_ROM_DEPTH-1:0];
 
-  initial $readmemh (BIASES_ROM_FILE, rom_data);
+  initial $readmemh (ROM_FILE, rom_data);
 
   assign read_data = rom_data[addr]; // Asynchronous read logic
 
