@@ -204,6 +204,7 @@ module control_fsm
     state           <= state_nxt;
     counter_passes  <= counter_passes_nxt;
     counter_neurons <= counter_neurons_nxt;
+    counter_weights <= counter_weights_nxt;
   end
 
 endmodule

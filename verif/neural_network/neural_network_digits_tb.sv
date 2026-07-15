@@ -110,7 +110,8 @@ module neural_network_digits_tb;
     end else begin
       $display("TEST FAILED: %0d mismatches vs golden model", golden_mismatches);
     end
-    $finish;
+//  $finish;
+    $stop;
   end
 
 endmodule
