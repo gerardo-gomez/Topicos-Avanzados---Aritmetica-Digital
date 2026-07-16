@@ -45,7 +45,10 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
   - Comando para correr simulación de TB Simple:            vsim -c -do ./sim/saturation/run_msim.do
   - Comando para compilar y generar reportes de timing:     source ./fpga/saturation/fpga_flow.sh
 6. Floating point
-  - No implementado
+  - Documento técnico:                                      docs/floating_point/floating_point.pdf
+  - Floating point adder top module:                        design/floating_point/fp_adder.sv
+  - Comando para correr simulación de TB Simple:            vsim -c -do ./sim/floating_point/fp_adder/run_msim.do
+  - Comando para compilar y generar reportes de timing:     source ./fpga/floating_point/fp_adder/fpga_flow.sh
 
 ### Proyecto
 1. Neural Network
