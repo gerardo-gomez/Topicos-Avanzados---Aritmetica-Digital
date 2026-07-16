@@ -52,3 +52,7 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
 
 ### Proyecto
 1. Neural Network
+  - Documento técnico:                                      docs/neural_network/neural_network.pdf
+  - Neural Network Digits Classifier top module:            design/neural_network/neural_network_digits.sv
+  - Comando para correr simulación de TB:                   vsim -c -do ./sim/neural_network/run_msim.do
+  - Comando para compilar y generar reportes de timing:     source ./fpga/neural_network/fpga_flow.sh
