@@ -16,6 +16,7 @@ module fma_dp #(
   input  logic [NUM_MULS-1:0][SRC1_WIDTH-1:0]   srca,      // Vector 1
   input  logic [NUM_MULS-1:0][SRC2_WIDTH-1:0]   srcb,      // Vector 2
   input  logic               [SRC3_WIDTH-1:0]   srcc,      // Scalar addend
+  input  logic                                  is_signed,
   output logic               [RESULT_WIDTH-1:0] result
 );
 

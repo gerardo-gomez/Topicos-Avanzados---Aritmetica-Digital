@@ -3,13 +3,15 @@
 La estructura de este repositorio consiste en:
 - design/  : RTL de los entregables.
 - docs/    : Documento técnico de cada tarea.
-- fpga/    : Proyectos de Quartus para la implementación en FPGA.
+- fpga/    : Proyectos de Quartus para la implementación en FPGA (MAX10).
 - sim/     : Scripts utilizados para correr las pruebas en Questasim.
 - verif/   : Testbenches de cada diseño.
 - scripts/ : Scripts auxiliares miscelaneos.
 
 A su vez, cada uno de estos directorios principales contiene subdirectorios correspondientes a cada tarea.
 Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
+
+Link a este repo: https://github.com/gerardo-gomez/Topicos-Avanzados---Aritmetica-Digital
 
 ## Entregables
 
@@ -46,7 +48,7 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
   - Comando para compilar y generar reportes de timing:     source ./fpga/saturation/fpga_flow.sh
 6. Floating point
   - Documento técnico:                                      docs/floating_point/floating_point.pdf
-  - Floating point adder top module:                        design/floating_point/fp_adder.sv
+  - Floating point adder top module (coded by Claude):      design/floating_point/fp_adder.sv
   - Comando para correr simulación de TB Simple:            vsim -c -do ./sim/floating_point/fp_adder/run_msim.do
   - Comando para compilar y generar reportes de timing:     source ./fpga/floating_point/fp_adder/fpga_flow.sh
 
@@ -56,3 +58,6 @@ Por ejemplo, para la tarea "Adders": design/adders/, docs/adders, etc.
   - Neural Network Digits Classifier top module:            design/neural_network/neural_network_digits.sv
   - Comando para correr simulación de TB:                   vsim -c -do ./sim/neural_network/run_msim.do
   - Comando para compilar y generar reportes de timing:     source ./fpga/neural_network/fpga_flow.sh
+2. Neural Network (Edit: FPGA Cyclone V + Single Wallace tree)
+  - Comando para correr simulación de TB:                   vsim -c -do ./sim/neural_network_single_wallace/run_msim.do
+  - Comando para compilar y generar reportes de timing:     source ./fpga/neural_network_cyclone_v/fpga_flow.sh
